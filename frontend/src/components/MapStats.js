@@ -1,0 +1,113 @@
+import React, { useState, useEffect } from 'react';
+import { getWinPercentageByMap } from '../api/client';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+
+const MapStats = ({ playerId }) => {
+  const [mapStats, setMapStats] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [mapTypeFilter, setMapTypeFilter] = useState('all');
+
+  useEffect(() => {
+    fetchMapStats();
+  }, [playerId]);
+
+  const fetchMapStats = async () => {
+    setLoading(true);
+    try {
+      const data = await getWinPercentageByMap(playerId);
+      setMapStats(data.map_stats);
+    } catch (err) {
+      console.error('Error fetching map stats:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) return <div>Loading map stats...</div>;
+
+  const filteredStats = mapTypeFilter === 'all'
+    ? mapStats
+    : mapStats.filter(m => m.map_type === mapTypeFilter);
+
+  // Sort by win percentage to highlight weakest maps
+  const sortedStats = [...filteredStats].sort((a, b) => a.win_percentage - b.win_percentage);
+
+  // Color code bars: red for low win rate, green for high
+  const getColor = (winRate) => {
+    if (winRate < 40) return '#ff4444';
+    if (winRate < 50) return '#ff9c00';
+    return '#44ff44';
+  };
+
+  return (
+    <div className="map-stats">
+      <div className="controls">
+        <label>Filter by Map Type: </label>
+        <select value={mapTypeFilter} onChange={(e) => setMapTypeFilter(e.target.value)}>
+          <option value="all">All Types</option>
+          <option value="Control">Control</option>
+          <option value="Hybrid">Hybrid</option>
+          <option value="Escort">Escort</option>
+          <option value="Push">Push</option>
+          <option value="Flashpoint">Flashpoint</option>
+        </select>
+      </div>
+
+      <div className="weakest-maps-alert">
+        <h3>⚠️ Weakest Maps (Needs Improvement)</h3>
+        <ul>
+          {sortedStats.slice(0, 3).map(map => (
+            <li key={map.map_id}>
+              <strong>{map.map_name}</strong> ({map.map_type}): {map.win_percentage}%
+              ({map.wins}W-{map.losses}L)
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <ResponsiveContainer width="100%" height={400}>
+        <BarChart data={sortedStats}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="map_name" angle={-45} textAnchor="end" height={120} />
+          <YAxis domain={[0, 100]} />
+          <Tooltip />
+          <Legend />
+          <Bar dataKey="win_percentage" name="Win %">
+            {sortedStats.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={getColor(entry.win_percentage)} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+
+      <table className="stats-table">
+        <thead>
+          <tr>
+            <th>Map</th>
+            <th>Type</th>
+            <th>Games</th>
+            <th>Wins</th>
+            <th>Losses</th>
+            <th>Win %</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sortedStats.map((map) => (
+            <tr key={map.map_id} className={map.win_percentage < 45 ? 'weak-map' : ''}>
+              <td className="map-name">{map.map_name}</td>
+              <td>{map.map_type}</td>
+              <td>{map.total}</td>
+              <td className="wins">{map.wins}</td>
+              <td className="losses">{map.losses}</td>
+              <td className="win-rate" style={{ color: getColor(map.win_percentage) }}>
+                {map.win_percentage}%
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+export default MapStats;

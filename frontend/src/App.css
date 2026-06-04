@@ -1,0 +1,383 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  color: #ffffff;
+  min-height: 100vh;
+}
+
+.App {
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.dashboard {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background: rgba(255, 156, 0, 0.1);
+  border-radius: 10px;
+  margin-bottom: 30px;
+  border: 2px solid #ff9c00;
+}
+
+.dashboard-header h1 {
+  color: #ff9c00;
+  font-size: 2.5rem;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.player-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.player-selector label {
+  color: #ffffff;
+  font-weight: bold;
+}
+
+.player-selector input {
+  padding: 8px 15px;
+  border: 2px solid #ff9c00;
+  border-radius: 5px;
+  background: #2d2d2d;
+  color: #ffffff;
+  font-size: 1rem;
+}
+
+.stats-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid #ff9c00;
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+  transition: transform 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  background: rgba(255, 156, 0, 0.1);
+}
+
+.stat-card h3 {
+  color: #ff9c00;
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.stat-value {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #ffffff;
+}
+
+.stat-detail {
+  color: #aaaaaa;
+  font-size: 0.9rem;
+  margin-top: 5px;
+}
+
+.tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #ff9c00;
+  padding-bottom: 10px;
+}
+
+.tabs button {
+  padding: 12px 30px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid transparent;
+  border-radius: 5px 5px 0 0;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.tabs button:hover {
+  background: rgba(255, 156, 0, 0.1);
+  border-color: #ff9c00;
+}
+
+.tabs button.active {
+  background: #ff9c00;
+  color: #000000;
+  font-weight: bold;
+}
+
+.tab-content {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 30px;
+  min-height: 400px;
+}
+
+.controls {
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.controls label {
+  color: #ff9c00;
+  font-weight: bold;
+}
+
+.controls select {
+  padding: 8px 15px;
+  border: 2px solid #ff9c00;
+  border-radius: 5px;
+  background: #2d2d2d;
+  color: #ffffff;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.stats-table thead {
+  background: rgba(255, 156, 0, 0.2);
+}
+
+.stats-table th {
+  padding: 12px;
+  text-align: left;
+  color: #ff9c00;
+  font-weight: bold;
+  border-bottom: 2px solid #ff9c00;
+}
+
+.stats-table td {
+  padding: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stats-table tbody tr:hover {
+  background: rgba(255, 156, 0, 0.1);
+}
+
+.role-tank { color: #4CAF50; }
+.role-dps { color: #f44336; }
+.role-support { color: #2196F3; }
+
+.role-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: bold;
+  margin-left: 5px;
+}
+
+.role-badge.role-tank {
+  background: #4CAF50;
+  color: #000;
+}
+
+.role-badge.role-dps {
+  background: #f44336;
+  color: #fff;
+}
+
+.role-badge.role-support {
+  background: #2196F3;
+  color: #fff;
+}
+
+.wins { color: #4CAF50; font-weight: bold; }
+.losses { color: #f44336; font-weight: bold; }
+
+.matches-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.matches-table thead {
+  background: rgba(255, 156, 0, 0.2);
+}
+
+.matches-table th {
+  padding: 12px;
+  text-align: left;
+  color: #ff9c00;
+  border-bottom: 2px solid #ff9c00;
+}
+
+.matches-table td {
+  padding: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.matches-table tr.win {
+  background: rgba(76, 175, 80, 0.1);
+}
+
+.matches-table tr.loss {
+  background: rgba(244, 67, 54, 0.1);
+}
+
+.outcome-win {
+  color: #4CAF50;
+  font-weight: bold;
+}
+
+.outcome-loss {
+  color: #f44336;
+  font-weight: bold;
+}
+
+.map-type {
+  display: block;
+  font-size: 0.8rem;
+  color: #aaaaaa;
+}
+
+.weakest-maps-alert {
+  background: rgba(244, 67, 54, 0.2);
+  border: 2px solid #f44336;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 30px;
+}
+
+.weakest-maps-alert h3 {
+  color: #f44336;
+  margin-bottom: 15px;
+}
+
+.weakest-maps-alert ul {
+  list-style: none;
+}
+
+.weakest-maps-alert li {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.weak-map {
+  background: rgba(244, 67, 54, 0.1);
+}
+
+.weakest-maps-section {
+  margin-bottom: 30px;
+}
+
+.weakest-maps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.weak-map-card {
+  background: rgba(244, 67, 54, 0.1);
+  border: 2px solid #f44336;
+  border-radius: 10px;
+  padding: 15px;
+  position: relative;
+  transition: transform 0.2s;
+}
+
+.weak-map-card:hover {
+  transform: translateY(-3px);
+}
+
+.weak-map-card .rank {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #f44336;
+  color: #fff;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.weak-map-card h4 {
+  color: #f44336;
+  margin-bottom: 5px;
+}
+
+.weak-map-card .win-rate {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #f44336;
+  margin: 10px 0;
+}
+
+.chart-section, .map-trends-section {
+  margin-top: 30px;
+}
+
+.individual-map-trend {
+  margin-bottom: 30px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+}
+
+.individual-map-trend h4 {
+  color: #ff9c00;
+  margin-bottom: 15px;
+}
+
+.loading, .error {
+  text-align: center;
+  padding: 40px;
+  font-size: 1.2rem;
+}
+
+.error {
+  color: #f44336;
+}
+
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .tabs {
+    flex-wrap: wrap;
+  }
+
+  .stats-table {
+    font-size: 0.85rem;
+  }
+
+  .stats-table th, .stats-table td {
+    padding: 8px 5px;
+  }
+}
