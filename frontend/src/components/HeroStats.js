@@ -41,11 +41,21 @@ const HeroStats = ({ playerId }) => {
         </select>
       </div>
 
-      <ResponsiveContainer width="100%" height={400}>
-        <BarChart data={filteredStats}>
+      <ResponsiveContainer width="100%" height={500}>
+        <BarChart data={filteredStats} margin={{ bottom: 100 }}>
           <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="hero_name" angle={-45} textAnchor="end" height={100} />
-          <YAxis />
+          <XAxis
+            dataKey="hero_name"
+            angle={-45}
+            textAnchor="end"
+            height={120}
+            interval={0}
+            label={{ value: 'Hero', position: 'insideBottom', offset: -90 }}
+          />
+          <YAxis
+            domain={[0, 100]}
+            label={{ value: 'Win Percentage (%)', angle: -90, position: 'insideLeft' }}
+          />
           <Tooltip />
           <Legend />
           <Bar dataKey="win_percentage" fill="#ff9c00" name="Win %" />

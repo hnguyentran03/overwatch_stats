@@ -59,8 +59,9 @@ def get_win_percentage_by_hero(player_id):
                 'avg_healing_done': performance_stats['avg_healing_done'],
             })
 
-        # Sort by games played descending, then by hero name
-        result.sort(key=lambda x: (-x['total'], x['hero_name']))
+        # Sort by role (tank, dps, support), then alphabetically by hero name
+        role_order = {'tank': 0, 'dps': 1, 'support': 2}
+        result.sort(key=lambda x: (role_order.get(x['role'], 3), x['hero_name']))
 
         return jsonify({
             'player_id': player_id,
@@ -109,8 +110,9 @@ def get_win_percentage_by_map(player_id):
                 **win_stats
             })
 
-        # Sort by games played descending, then by map name
-        result.sort(key=lambda x: (-x['total'], x['map_name']))
+        # Sort by map type (Control, Escort, Flashpoint, Hybrid, Push), then alphabetically by map name
+        map_type_order = {'Control': 0, 'Escort': 1, 'Flashpoint': 2, 'Hybrid': 3, 'Push': 4}
+        result.sort(key=lambda x: (map_type_order.get(x['map_type'], 5), x['map_name']))
 
         return jsonify({
             'player_id': player_id,

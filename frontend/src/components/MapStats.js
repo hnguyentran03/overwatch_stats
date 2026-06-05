@@ -29,8 +29,8 @@ const MapStats = ({ playerId }) => {
     ? mapStats
     : mapStats.filter(m => m.map_type === mapTypeFilter);
 
-  // Sort by win percentage to highlight weakest maps
-  const sortedStats = [...filteredStats].sort((a, b) => a.win_percentage - b.win_percentage);
+  // Keep the backend sorting order (by map type, then alphabetically)
+  const sortedStats = filteredStats;
 
   // Color code bars: red for low win rate, green for high
   const getColor = (winRate) => {
@@ -65,11 +65,21 @@ const MapStats = ({ playerId }) => {
         </ul>
       </div>
 
-      <ResponsiveContainer width="100%" height={400}>
-        <BarChart data={sortedStats}>
+      <ResponsiveContainer width="100%" height={500}>
+        <BarChart data={sortedStats} margin={{ bottom: 100 }}>
           <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="map_name" angle={-45} textAnchor="end" height={120} />
-          <YAxis domain={[0, 100]} />
+          <XAxis
+            dataKey="map_name"
+            angle={-45}
+            textAnchor="end"
+            height={140}
+            interval={0}
+            label={{ value: 'Map', position: 'insideBottom', offset: -100 }}
+          />
+          <YAxis
+            domain={[0, 100]}
+            label={{ value: 'Win Percentage (%)', angle: -90, position: 'insideLeft' }}
+          />
           <Tooltip />
           <Legend />
           <Bar dataKey="win_percentage" name="Win %">
