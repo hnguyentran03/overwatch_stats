@@ -31,12 +31,13 @@ def calculate_win_percentage(matches):
 def aggregate_hero_stats(match_players):
     """
     Aggregate statistics from multiple MatchPlayer records.
-    Returns totals and averages for eliminations, deaths, damage, etc.
+    Returns totals, averages, and per-10-min stats for eliminations, deaths, damage, etc.
     """
     if not match_players:
         return {
             'games_played': 0,
             'total_eliminations': 0,
+            'total_final_blows': 0,
             'total_assists': 0,
             'total_deaths': 0,
             'total_damage_done': 0.0,
@@ -44,15 +45,24 @@ def aggregate_hero_stats(match_players):
             'total_damage_mitigated': 0.0,
             'total_time_played': 0.0,
             'avg_eliminations': 0.0,
+            'avg_final_blows': 0.0,
             'avg_assists': 0.0,
             'avg_deaths': 0.0,
             'avg_damage_done': 0.0,
             'avg_healing_done': 0.0,
             'avg_damage_mitigated': 0.0,
+            'elims_per_10': 0.0,
+            'final_blows_per_10': 0.0,
+            'assists_per_10': 0.0,
+            'deaths_per_10': 0.0,
+            'damage_per_10': 0.0,
+            'healing_per_10': 0.0,
+            'mitigation_per_10': 0.0,
         }
 
     games_played = len(match_players)
     total_eliminations = sum(mp.eliminations for mp in match_players)
+    total_final_blows = sum(mp.final_blows for mp in match_players)
     total_assists = sum(mp.assists for mp in match_players)
     total_deaths = sum(mp.deaths for mp in match_players)
     total_damage_done = sum(mp.damage_done for mp in match_players)
@@ -60,9 +70,13 @@ def aggregate_hero_stats(match_players):
     total_damage_mitigated = sum(mp.damage_mitigated for mp in match_players)
     total_time_played = sum(mp.time_played for mp in match_players)
 
+    # Calculate per-10-min stats (time_played is in minutes)
+    time_in_10min_units = total_time_played / 10 if total_time_played > 0 else 0
+
     return {
         'games_played': games_played,
         'total_eliminations': total_eliminations,
+        'total_final_blows': total_final_blows,
         'total_assists': total_assists,
         'total_deaths': total_deaths,
         'total_damage_done': round(total_damage_done, 2),
@@ -70,11 +84,19 @@ def aggregate_hero_stats(match_players):
         'total_damage_mitigated': round(total_damage_mitigated, 2),
         'total_time_played': round(total_time_played, 2),
         'avg_eliminations': round(total_eliminations / games_played, 2) if games_played > 0 else 0.0,
+        'avg_final_blows': round(total_final_blows / games_played, 2) if games_played > 0 else 0.0,
         'avg_assists': round(total_assists / games_played, 2) if games_played > 0 else 0.0,
         'avg_deaths': round(total_deaths / games_played, 2) if games_played > 0 else 0.0,
         'avg_damage_done': round(total_damage_done / games_played, 2) if games_played > 0 else 0.0,
         'avg_healing_done': round(total_healing_done / games_played, 2) if games_played > 0 else 0.0,
         'avg_damage_mitigated': round(total_damage_mitigated / games_played, 2) if games_played > 0 else 0.0,
+        'elims_per_10': round(total_eliminations / time_in_10min_units, 2) if time_in_10min_units > 0 else 0.0,
+        'final_blows_per_10': round(total_final_blows / time_in_10min_units, 2) if time_in_10min_units > 0 else 0.0,
+        'assists_per_10': round(total_assists / time_in_10min_units, 2) if time_in_10min_units > 0 else 0.0,
+        'deaths_per_10': round(total_deaths / time_in_10min_units, 2) if time_in_10min_units > 0 else 0.0,
+        'damage_per_10': round(total_damage_done / time_in_10min_units, 2) if time_in_10min_units > 0 else 0.0,
+        'healing_per_10': round(total_healing_done / time_in_10min_units, 2) if time_in_10min_units > 0 else 0.0,
+        'mitigation_per_10': round(total_damage_mitigated / time_in_10min_units, 2) if time_in_10min_units > 0 else 0.0,
     }
 
 

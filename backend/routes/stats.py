@@ -54,9 +54,19 @@ def get_win_percentage_by_hero(player_id):
                 'role': hero.role.value,
                 **win_stats,
                 'avg_eliminations': performance_stats['avg_eliminations'],
+                'avg_final_blows': performance_stats['avg_final_blows'],
                 'avg_deaths': performance_stats['avg_deaths'],
                 'avg_damage_done': performance_stats['avg_damage_done'],
                 'avg_healing_done': performance_stats['avg_healing_done'],
+                'avg_damage_mitigated': performance_stats['avg_damage_mitigated'],
+                'total_time_played': performance_stats['total_time_played'],
+                'elims_per_10': performance_stats['elims_per_10'],
+                'final_blows_per_10': performance_stats['final_blows_per_10'],
+                'assists_per_10': performance_stats['assists_per_10'],
+                'deaths_per_10': performance_stats['deaths_per_10'],
+                'damage_per_10': performance_stats['damage_per_10'],
+                'healing_per_10': performance_stats['healing_per_10'],
+                'mitigation_per_10': performance_stats['mitigation_per_10'],
             })
 
         # Sort by role (tank, dps, support), then alphabetically by hero name

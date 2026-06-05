@@ -104,6 +104,7 @@ def generate_sample_data():
             # Generate realistic stats based on role
             if hero.role.value == 'tank':
                 eliminations = random.randint(15, 35)
+                final_blows = int(eliminations * random.uniform(0.4, 0.6))  # 40-60% of elims
                 assists = random.randint(10, 25)
                 deaths = random.randint(3, 12)
                 damage_done = random.uniform(8000, 18000)
@@ -111,6 +112,7 @@ def generate_sample_data():
                 damage_mitigated = random.uniform(15000, 35000)
             elif hero.role.value == 'support':
                 eliminations = random.randint(5, 20)
+                final_blows = int(eliminations * random.uniform(0.3, 0.5))  # 30-50% of elims
                 assists = random.randint(15, 35)
                 deaths = random.randint(2, 10)
                 damage_done = random.uniform(3000, 12000)
@@ -118,6 +120,7 @@ def generate_sample_data():
                 damage_mitigated = random.uniform(0, 5000)
             else:  # DPS
                 eliminations = random.randint(20, 45)
+                final_blows = int(eliminations * random.uniform(0.6, 0.8))  # 60-80% of elims
                 assists = random.randint(5, 20)
                 deaths = random.randint(4, 15)
                 damage_done = random.uniform(12000, 25000)
@@ -127,6 +130,7 @@ def generate_sample_data():
             # Winning matches tend to have better stats
             if outcome == OutcomeEnum.win:
                 eliminations = int(eliminations * 1.2)
+                final_blows = int(final_blows * 1.2)
                 assists = int(assists * 1.1)
                 deaths = max(1, int(deaths * 0.8))
 
@@ -137,6 +141,7 @@ def generate_sample_data():
                 player_id=selected_player.player_id,
                 hero_id=hero.hero_id,
                 eliminations=eliminations,
+                final_blows=final_blows,
                 assists=assists,
                 deaths=deaths,
                 damage_done=round(damage_done, 2),
