@@ -7,8 +7,12 @@ const MatchHistory = ({ matches }) => {
 
   return (
     <div className="match-history">
-      <h3>Recent Matches</h3>
-      <table className="matches-table">
+      <h2>Match History</h2>
+      <h3 style={{ textAlign: 'center', color: '#ff9c00', marginBottom: '20px' }}>
+        Recent Matches (Last 20)
+      </h3>
+      <div className="matches-table-wrapper">
+        <table className="matches-table">
         <thead>
           <tr>
             <th>Date</th>
@@ -51,7 +55,8 @@ const MatchHistory = ({ matches }) => {
             </tr>
           ))}
         </tbody>
-      </table>
+        </table>
+      </div>
     </div>
   );
 };

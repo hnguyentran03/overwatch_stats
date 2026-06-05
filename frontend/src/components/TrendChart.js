@@ -60,6 +60,8 @@ const TrendChart = ({ playerId }) => {
 
   return (
     <div className="trend-chart">
+      <h2>Performance Trends Over Time</h2>
+
       <div className="controls">
         <label>Time Window: </label>
         <select value={timeWindow} onChange={(e) => setTimeWindow(e.target.value)}>
@@ -89,8 +91,14 @@ const TrendChart = ({ playerId }) => {
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={overallTrendData}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="period" />
-            <YAxis domain={[0, 100]} />
+            <XAxis
+              dataKey="period"
+              label={{ value: 'Time Period', position: 'insideBottom', offset: -5 }}
+            />
+            <YAxis
+              domain={[0, 100]}
+              label={{ value: 'Win Percentage (%)', angle: -90, position: 'insideLeft' }}
+            />
             <Tooltip />
             <Legend />
             <Line type="monotone" dataKey="win_percentage" stroke="#ff9c00" name="Win %" strokeWidth={2} />
@@ -114,8 +122,14 @@ const TrendChart = ({ playerId }) => {
               <ResponsiveContainer width="100%" height={200}>
                 <LineChart data={trendData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="period" />
-                  <YAxis domain={[0, 100]} />
+                  <XAxis
+                    dataKey="period"
+                    label={{ value: 'Time Period', position: 'insideBottom', offset: -5 }}
+                  />
+                  <YAxis
+                    domain={[0, 100]}
+                    label={{ value: 'Win %', angle: -90, position: 'insideLeft' }}
+                  />
                   <Tooltip />
                   <Line type="monotone" dataKey="win_percentage" stroke="#ff9c00" strokeWidth={2} />
                 </LineChart>

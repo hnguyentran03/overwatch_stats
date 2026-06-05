@@ -41,6 +41,8 @@ const HeroStats = ({ playerId }) => {
 
   return (
     <div className="hero-stats">
+      <h2>Hero Performance Statistics</h2>
+
       <div className="controls">
         <label>Filter by Role: </label>
         <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
@@ -51,7 +53,9 @@ const HeroStats = ({ playerId }) => {
         </select>
       </div>
 
-      <ResponsiveContainer width="100%" height={500}>
+      <div className="chart-section">
+        <h3>Win Rate by Hero</h3>
+        <ResponsiveContainer width="100%" height={500}>
         <BarChart data={filteredStats} margin={{ bottom: 100 }}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis
@@ -74,9 +78,14 @@ const HeroStats = ({ playerId }) => {
             ))}
           </Bar>
         </BarChart>
-      </ResponsiveContainer>
+        </ResponsiveContainer>
+      </div>
 
-      <table className="stats-table">
+      <h3 style={{ marginTop: '40px', marginBottom: '20px', textAlign: 'center', color: '#ff9c00' }}>
+        Detailed Hero Statistics
+      </h3>
+      <div className="stats-table-wrapper">
+        <table className="stats-table">
         <thead>
           <tr>
             <th>Hero</th>
@@ -125,7 +134,8 @@ const HeroStats = ({ playerId }) => {
             </tr>
           ))}
         </tbody>
-      </table>
+        </table>
+      </div>
     </div>
   );
 };

@@ -157,10 +157,17 @@ body {
   cursor: pointer;
 }
 
+.stats-table-wrapper {
+  overflow-x: auto;
+  margin-top: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
 .stats-table {
   width: 100%;
+  min-width: 1200px;
   border-collapse: collapse;
-  margin-top: 20px;
 }
 
 .stats-table thead {
@@ -168,16 +175,44 @@ body {
 }
 
 .stats-table th {
-  padding: 12px;
-  text-align: left;
+  padding: 10px 8px;
+  text-align: center;
   color: #ff9c00;
   font-weight: bold;
   border-bottom: 2px solid #ff9c00;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  background: rgba(45, 45, 45, 0.95);
+  z-index: 10;
 }
 
 .stats-table td {
-  padding: 12px;
+  padding: 10px 8px;
+  text-align: center;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.stats-table th:first-child,
+.stats-table td:first-child {
+  text-align: left;
+  position: sticky;
+  left: 0;
+  background: #2d2d2d;
+  z-index: 5;
+  min-width: 120px;
+}
+
+.stats-table th:first-child {
+  z-index: 15;
+}
+
+.stats-table th:nth-child(2),
+.stats-table td:nth-child(2) {
+  text-align: center;
 }
 
 .stats-table tbody tr:hover {
@@ -215,8 +250,16 @@ body {
 .wins { color: #4CAF50; font-weight: bold; }
 .losses { color: #f44336; font-weight: bold; }
 
+.matches-table-wrapper {
+  overflow-x: auto;
+  margin-top: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
 .matches-table {
   width: 100%;
+  min-width: 900px;
   border-collapse: collapse;
 }
 
@@ -225,15 +268,28 @@ body {
 }
 
 .matches-table th {
-  padding: 12px;
-  text-align: left;
+  padding: 10px 8px;
+  text-align: center;
   color: #ff9c00;
   border-bottom: 2px solid #ff9c00;
+  font-size: 0.9rem;
+  white-space: nowrap;
 }
 
 .matches-table td {
-  padding: 12px;
+  padding: 10px 8px;
+  text-align: center;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 0.9rem;
+}
+
+.matches-table th:first-child,
+.matches-table td:first-child,
+.matches-table th:nth-child(2),
+.matches-table td:nth-child(2),
+.matches-table th:nth-child(3),
+.matches-table td:nth-child(3) {
+  text-align: left;
 }
 
 .matches-table tr.win {
@@ -341,6 +397,32 @@ body {
   margin-top: 30px;
 }
 
+.chart-section h3, .hero-stats h2, .map-stats h2 {
+  text-align: center;
+  color: #ff9c00;
+  margin-bottom: 20px;
+  font-size: 1.8rem;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.win-rate {
+  text-align: center;
+}
+
+/* Recharts customization */
+.recharts-text {
+  fill: #ffffff;
+}
+
+.recharts-cartesian-axis-tick-value {
+  fill: #ffffff;
+}
+
+.recharts-label {
+  fill: #ff9c00;
+  font-weight: bold;
+}
+
 .individual-map-trend {
   margin-bottom: 30px;
   padding: 20px;
@@ -363,6 +445,61 @@ body {
   color: #f44336;
 }
 
+/* Additional styling for better presentation */
+.hero-stats, .map-stats, .trend-chart, .match-history {
+  padding: 20px;
+}
+
+.hero-stats h2, .map-stats h2, .trend-chart h2, .match-history h2 {
+  text-align: center;
+  color: #ff9c00;
+  margin-bottom: 30px;
+  font-size: 2rem;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.controls {
+  text-align: center;
+  margin-bottom: 30px;
+  padding: 15px;
+  background: rgba(255, 156, 0, 0.1);
+  border-radius: 8px;
+}
+
+.weakest-maps-section h3, .chart-section h3, .map-trends-section h3 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.hero-name, .map-name {
+  font-weight: bold;
+}
+
+/* Scrollbar styling for tables */
+.stats-table-wrapper::-webkit-scrollbar,
+.matches-table-wrapper::-webkit-scrollbar {
+  height: 8px;
+}
+
+.stats-table-wrapper::-webkit-scrollbar-track,
+.matches-table-wrapper::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.stats-table-wrapper::-webkit-scrollbar-thumb,
+.matches-table-wrapper::-webkit-scrollbar-thumb {
+  background: #ff9c00;
+  border-radius: 4px;
+}
+
+.stats-table-wrapper::-webkit-scrollbar-thumb:hover,
+.matches-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #ffb733;
+}
+
 @media (max-width: 768px) {
   .dashboard-header {
     flex-direction: column;
@@ -379,5 +516,9 @@ body {
 
   .stats-table th, .stats-table td {
     padding: 8px 5px;
+  }
+
+  .hero-stats h2, .map-stats h2, .trend-chart h2, .match-history h2 {
+    font-size: 1.5rem;
   }
 }

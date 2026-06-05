@@ -41,6 +41,8 @@ const MapStats = ({ playerId }) => {
 
   return (
     <div className="map-stats">
+      <h2>Map Performance Statistics</h2>
+
       <div className="controls">
         <label>Filter by Map Type: </label>
         <select value={mapTypeFilter} onChange={(e) => setMapTypeFilter(e.target.value)}>
@@ -65,7 +67,9 @@ const MapStats = ({ playerId }) => {
         </ul>
       </div>
 
-      <ResponsiveContainer width="100%" height={500}>
+      <div className="chart-section">
+        <h3>Win Rate by Map</h3>
+        <ResponsiveContainer width="100%" height={500}>
         <BarChart data={sortedStats} margin={{ bottom: 100 }}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis
@@ -88,9 +92,14 @@ const MapStats = ({ playerId }) => {
             ))}
           </Bar>
         </BarChart>
-      </ResponsiveContainer>
+        </ResponsiveContainer>
+      </div>
 
-      <table className="stats-table">
+      <h3 style={{ marginTop: '40px', marginBottom: '20px', textAlign: 'center', color: '#ff9c00' }}>
+        Detailed Map Statistics
+      </h3>
+      <div className="stats-table-wrapper">
+        <table className="stats-table">
         <thead>
           <tr>
             <th>Map</th>
@@ -115,7 +124,8 @@ const MapStats = ({ playerId }) => {
             </tr>
           ))}
         </tbody>
-      </table>
+        </table>
+      </div>
     </div>
   );
 };
