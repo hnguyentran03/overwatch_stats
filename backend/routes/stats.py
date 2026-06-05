@@ -16,6 +16,7 @@ stats_bp = Blueprint('stats', __name__)
 def get_win_percentage_by_hero(player_id):
     """
     Retrieve win percentage per hero for a specific player.
+    Returns all heroes, including those with no data (0% win rate).
     """
     db = get_db()
     session = db.get_session()
@@ -25,15 +26,11 @@ def get_win_percentage_by_hero(player_id):
         if not player:
             return jsonify({'error': 'Player not found'}), 404
 
-        # Get all heroes the player has played
-        heroes = session.query(Hero).join(
-            MatchPlayer, Hero.hero_id == MatchPlayer.hero_id
-        ).filter(
-            MatchPlayer.player_id == player_id
-        ).distinct().all()
+        # Get ALL heroes from the database
+        all_heroes = session.query(Hero).all()
 
         result = []
-        for hero in heroes:
+        for hero in all_heroes:
             # Get matches for this hero
             matches = session.query(Match).join(
                 MatchPlayer, Match.match_id == MatchPlayer.match_id
@@ -62,8 +59,8 @@ def get_win_percentage_by_hero(player_id):
                 'avg_healing_done': performance_stats['avg_healing_done'],
             })
 
-        # Sort by games played descending
-        result.sort(key=lambda x: x['total'], reverse=True)
+        # Sort by games played descending, then by hero name
+        result.sort(key=lambda x: (-x['total'], x['hero_name']))
 
         return jsonify({
             'player_id': player_id,
@@ -80,6 +77,7 @@ def get_win_percentage_by_hero(player_id):
 def get_win_percentage_by_map(player_id):
     """
     Retrieve win percentage per map for a specific player.
+    Returns all maps, including those with no data (0% win rate).
     """
     db = get_db()
     session = db.get_session()
@@ -89,17 +87,11 @@ def get_win_percentage_by_map(player_id):
         if not player:
             return jsonify({'error': 'Player not found'}), 404
 
-        # Get all maps the player has played on
-        maps = session.query(Map).join(
-            Match, Map.map_id == Match.map_id
-        ).join(
-            MatchPlayer, Match.match_id == MatchPlayer.match_id
-        ).filter(
-            MatchPlayer.player_id == player_id
-        ).distinct().all()
+        # Get ALL maps from the database
+        all_maps = session.query(Map).all()
 
         result = []
-        for map_obj in maps:
+        for map_obj in all_maps:
             # Get matches for this map
             matches = session.query(Match).join(
                 MatchPlayer, Match.match_id == MatchPlayer.match_id
@@ -117,8 +109,8 @@ def get_win_percentage_by_map(player_id):
                 **win_stats
             })
 
-        # Sort by games played descending
-        result.sort(key=lambda x: x['total'], reverse=True)
+        # Sort by games played descending, then by map name
+        result.sort(key=lambda x: (-x['total'], x['map_name']))
 
         return jsonify({
             'player_id': player_id,
