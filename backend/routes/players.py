@@ -34,9 +34,10 @@ def get_player_stats(battle_tag):
         # Aggregate stats
         stats = aggregate_hero_stats(match_players)
 
-        # Calculate overall win/loss
+        # Calculate overall win/loss/tie
         wins = sum(1 for match in matches if match.outcome.value == 'win')
-        losses = len(matches) - wins
+        losses = sum(1 for match in matches if match.outcome.value == 'loss')
+        ties = len(matches) - wins - losses
 
         # Calculate win rate per role
         role_win_rates = {}
@@ -50,11 +51,13 @@ def get_player_stats(battle_tag):
                 Hero.role == RoleEnum[role]
             ).all()
             role_wins = sum(1 for m in role_matches if m.outcome.value == 'win')
+            role_losses = sum(1 for m in role_matches if m.outcome.value == 'loss')
             role_total = len(role_matches)
-            role_losses = role_total - role_wins
+            role_ties = role_total - role_wins - role_losses
             role_win_rates[f'{role}_matches'] = role_total
             role_win_rates[f'{role}_wins'] = role_wins
             role_win_rates[f'{role}_losses'] = role_losses
+            role_win_rates[f'{role}_ties'] = role_ties
             role_win_rates[f'{role}_win_percentage'] = (
                 round(role_wins / role_total * 100, 2) if role_total > 0 else None
             )
@@ -64,6 +67,7 @@ def get_player_stats(battle_tag):
             'total_matches': len(matches),
             'wins': wins,
             'losses': losses,
+            'ties': ties,
             'win_percentage': round(wins / len(matches) * 100, 2) if len(matches) > 0 else 0.0,
             **role_win_rates,
             **stats

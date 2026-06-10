@@ -51,7 +51,7 @@ const MatchHistory = ({ matches }) => {
                 </div>
               </td>
               <td className={`outcome-${match.outcome}`}>
-                {match.outcome === 'win' ? '✓ WIN' : '✗ LOSS'}
+                {match.outcome === 'win' ? '✓ WIN' : match.outcome === 'tie' ? '= TIE' : '✗ LOSS'}
               </td>
               <td>{match.final_score}</td>
               <td className="kda">

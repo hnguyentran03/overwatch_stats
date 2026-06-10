@@ -9,6 +9,7 @@ Base = declarative_base()
 class OutcomeEnum(enum.Enum):
     win = "win"
     loss = "loss"
+    tie = "tie"
 
 
 class RoleEnum(enum.Enum):

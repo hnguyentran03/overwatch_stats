@@ -40,6 +40,8 @@ class Database:
                 ("Winston", RoleEnum.tank),
                 ("Wrecking Ball", RoleEnum.tank),
                 ("Zarya", RoleEnum.tank),
+                ("Domina", RoleEnum.tank),
+                ("Hazard", RoleEnum.tank),
                 # DPS
                 ("Ashe", RoleEnum.dps),
                 ("Bastion", RoleEnum.dps),
@@ -57,7 +59,14 @@ class Database:
                 ("Symmetra", RoleEnum.dps),
                 ("Torbjörn", RoleEnum.dps),
                 ("Tracer", RoleEnum.dps),
+                ("Anran", RoleEnum.dps),
+                ("Emre", RoleEnum.dps),
+                ("Shion", RoleEnum.dps),
+                ("Sierra", RoleEnum.dps),
+                ("Vendetta", RoleEnum.dps),
+                ("Venture", RoleEnum.dps),
                 ("Widowmaker", RoleEnum.dps),
+                ("Freja", RoleEnum.dps),
                 # Support
                 ("Ana", RoleEnum.support),
                 ("Baptiste", RoleEnum.support),
@@ -68,7 +77,11 @@ class Database:
                 ("Lúcio", RoleEnum.support),
                 ("Mercy", RoleEnum.support),
                 ("Moira", RoleEnum.support),
+                ("Jetpack Cat", RoleEnum.support),
+                ("Mizuki", RoleEnum.support),
+                ("Wuyang", RoleEnum.support),
                 ("Zenyatta", RoleEnum.support),
+                ("Juno", RoleEnum.support),
             ]
 
             for hero_name, role in heroes_data:
@@ -106,7 +119,9 @@ class Database:
                 ("Colosseo", MapTypeEnum.push),
                 ("Esperança", MapTypeEnum.push),
                 ("New Queen Street", MapTypeEnum.push),
+                ("Runasapi", MapTypeEnum.push),
                 # Flashpoint
+                ("Aatlis", MapTypeEnum.flashpoint),
                 ("New Junk City", MapTypeEnum.flashpoint),
                 ("Suravasa", MapTypeEnum.flashpoint),
             ]
