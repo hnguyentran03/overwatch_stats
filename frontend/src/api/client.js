@@ -35,8 +35,10 @@ export const getWinPercentageByHero = async (battleTag) => {
   return response.data;
 };
 
-export const getWinPercentageByMap = async (battleTag) => {
-  const response = await apiClient.get(`/players/${encodeTag(battleTag)}/win_percentage/map`);
+export const getWinPercentageByMap = async (battleTag, role = null) => {
+  const params = {};
+  if (role) params.role = role;
+  const response = await apiClient.get(`/players/${encodeTag(battleTag)}/win_percentage/map`, { params });
   return response.data;
 };
 
@@ -45,10 +47,10 @@ export const getMapStats = async (battleTag, mapId) => {
   return response.data;
 };
 
-export const getMapTrends = async (battleTag, timeWindow = 'week') => {
-  const response = await apiClient.get(`/players/${encodeTag(battleTag)}/map_trends`, {
-    params: { time_window: timeWindow }
-  });
+export const getMapTrends = async (battleTag, timeWindow = 'week', role = null) => {
+  const params = { time_window: timeWindow };
+  if (role) params.role = role;
+  const response = await apiClient.get(`/players/${encodeTag(battleTag)}/map_trends`, { params });
   return response.data;
 };
 

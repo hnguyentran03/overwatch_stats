@@ -8,16 +8,17 @@ const TrendChart = ({ playerId }) => {
   const [trends, setTrends] = useState([]);
   const [loading, setLoading] = useState(true);
   const [timeWindow, setTimeWindow] = useState('week');
+  const [roleFilter, setRoleFilter] = useState('all');
   const [collapsedGroups, setCollapsedGroups] = useState({});
 
   useEffect(() => {
     fetchTrends();
-  }, [playerId, timeWindow]);
+  }, [playerId, timeWindow, roleFilter]);
 
   const fetchTrends = async () => {
     setLoading(true);
     try {
-      const data = await getMapTrends(playerId, timeWindow);
+      const data = await getMapTrends(playerId, timeWindow, roleFilter === 'all' ? null : roleFilter);
       setTrends(data.map_trends);
     } catch (err) {
       console.error('Error fetching trends:', err);
@@ -87,6 +88,13 @@ const TrendChart = ({ playerId }) => {
           <option value="day">Daily</option>
           <option value="week">Weekly</option>
           <option value="month">Monthly</option>
+        </select>
+        <label>Role: </label>
+        <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+          <option value="all">All Roles</option>
+          <option value="tank">Tank</option>
+          <option value="dps">DPS</option>
+          <option value="support">Support</option>
         </select>
       </div>
 

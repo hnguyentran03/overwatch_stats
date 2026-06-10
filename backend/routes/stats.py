@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from models import Player, MatchPlayer, Match, Hero, Map
+from models import Player, MatchPlayer, Match, Hero, Map, RoleEnum
 from utils.db import get_db
 from utils.calculations import (
     calculate_win_percentage,
@@ -102,18 +102,27 @@ def get_win_percentage_by_map(battle_tag):
 
         player_id = player.player_id
 
+        role = request.args.get('role')
+        if role and role not in ['tank', 'dps', 'support']:
+            return jsonify({'error': 'Invalid role. Use tank, dps, or support'}), 400
+
         # Get ALL maps from the database
         all_maps = session.query(Map).all()
 
         result = []
         for map_obj in all_maps:
             # Get matches for this map
-            matches = session.query(Match).join(
+            query = session.query(Match).join(
                 MatchPlayer, Match.match_id == MatchPlayer.match_id
             ).filter(
                 MatchPlayer.player_id == player_id,
                 Match.map_id == map_obj.map_id
-            ).all()
+            )
+            if role:
+                query = query.join(Hero, MatchPlayer.hero_id == Hero.hero_id).filter(
+                    Hero.role == RoleEnum(role)
+                )
+            matches = query.all()
 
             win_stats = calculate_win_percentage(matches)
 
@@ -242,6 +251,10 @@ def get_map_trends(battle_tag):
         if time_window not in ['day', 'week', 'month']:
             return jsonify({'error': 'Invalid time_window. Use day, week, or month'}), 400
 
+        role = request.args.get('role')
+        if role and role not in ['tank', 'dps', 'support']:
+            return jsonify({'error': 'Invalid role. Use tank, dps, or support'}), 400
+
         # Get all maps the player has played on
         maps = session.query(Map).join(
             Match, Map.map_id == Match.map_id
@@ -256,12 +269,17 @@ def get_map_trends(battle_tag):
 
         for map_obj in maps:
             # Get matches for this map
-            matches = session.query(Match).join(
+            query = session.query(Match).join(
                 MatchPlayer, Match.match_id == MatchPlayer.match_id
             ).filter(
                 MatchPlayer.player_id == player_id,
                 Match.map_id == map_obj.map_id
-            ).order_by(Match.date_time).all()
+            )
+            if role:
+                query = query.join(Hero, MatchPlayer.hero_id == Hero.hero_id).filter(
+                    Hero.role == RoleEnum(role)
+                )
+            matches = query.order_by(Match.date_time).all()
 
             # Calculate trends
             trends = calculate_map_trends(matches, time_window)

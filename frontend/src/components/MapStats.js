@@ -1,20 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { getWinPercentageByMap } from '../api/client';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 const MapStats = ({ playerId }) => {
   const [mapStats, setMapStats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mapTypeFilter, setMapTypeFilter] = useState('all');
+  const [roleFilter, setRoleFilter] = useState('all');
 
   useEffect(() => {
     fetchMapStats();
-  }, [playerId]);
+  }, [playerId, roleFilter]);
 
   const fetchMapStats = async () => {
     setLoading(true);
     try {
-      const data = await getWinPercentageByMap(playerId);
+      const data = await getWinPercentageByMap(playerId, roleFilter === 'all' ? null : roleFilter);
       setMapStats(data.map_stats);
     } catch (err) {
       console.error('Error fetching map stats:', err);
@@ -56,7 +57,7 @@ const MapStats = ({ playerId }) => {
       <h2>Map Performance Statistics</h2>
 
       <div className="controls">
-        <label>Filter by Map Type: </label>
+        <label>Map Type: </label>
         <select value={mapTypeFilter} onChange={(e) => setMapTypeFilter(e.target.value)}>
           <option value="all">All Types</option>
           <option value="Control">Control</option>
@@ -64,6 +65,13 @@ const MapStats = ({ playerId }) => {
           <option value="Escort">Escort</option>
           <option value="Push">Push</option>
           <option value="Flashpoint">Flashpoint</option>
+        </select>
+        <label>Role: </label>
+        <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+          <option value="all">All Roles</option>
+          <option value="tank">Tank</option>
+          <option value="dps">DPS</option>
+          <option value="support">Support</option>
         </select>
       </div>
 
@@ -85,7 +93,6 @@ const MapStats = ({ playerId }) => {
             label={{ value: 'Win %', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
           />
           <Tooltip content={<WinRateTooltip />} />
-          <Legend />
           <Bar dataKey="win_percentage" name="Win %">
             {sortedStats.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={getColor(entry.win_percentage)} />
