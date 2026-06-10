@@ -8,18 +8,20 @@ from collections import defaultdict
 players_bp = Blueprint('players', __name__)
 
 
-@players_bp.route('/players/<int:player_id>/stats', methods=['GET'])
-def get_player_stats(player_id):
+@players_bp.route('/players/<string:battle_tag>/stats', methods=['GET'])
+def get_player_stats(battle_tag):
     """
-    Retrieve overall statistics for a specific player.
+    Retrieve overall statistics for a specific player by Battle.net ID (e.g. Name#1234).
     """
     db = get_db()
     session = db.get_session()
 
     try:
-        player = session.query(Player).filter_by(player_id=player_id).first()
+        player = session.query(Player).filter_by(user_id=battle_tag).first()
         if not player:
             return jsonify({'error': 'Player not found'}), 404
+
+        player_id = player.player_id
 
         # Get all match players for this player
         match_players = session.query(MatchPlayer).filter_by(player_id=player_id).all()
@@ -37,8 +39,7 @@ def get_player_stats(player_id):
         losses = len(matches) - wins
 
         result = {
-            'player_id': player.player_id,
-            'user_id': player.user_id,
+            'battle_tag': player.user_id,
             'total_matches': len(matches),
             'wins': wins,
             'losses': losses,
@@ -54,18 +55,20 @@ def get_player_stats(player_id):
         session.close()
 
 
-@players_bp.route('/players/<int:player_id>/match_outcomes', methods=['GET'])
-def get_match_outcomes(player_id):
+@players_bp.route('/players/<string:battle_tag>/match_outcomes', methods=['GET'])
+def get_match_outcomes(battle_tag):
     """
-    Retrieve match outcomes for a specific player.
+    Retrieve match outcomes for a specific player by Battle.net ID (e.g. Name#1234).
     """
     db = get_db()
     session = db.get_session()
 
     try:
-        player = session.query(Player).filter_by(player_id=player_id).first()
+        player = session.query(Player).filter_by(user_id=battle_tag).first()
         if not player:
             return jsonify({'error': 'Player not found'}), 404
+
+        player_id = player.player_id
 
         # Get all matches for this player with their performance
         matches_query = session.query(Match, MatchPlayer, Hero, Map).join(
@@ -100,7 +103,7 @@ def get_match_outcomes(player_id):
             })
 
         return jsonify({
-            'player_id': player_id,
+            'battle_tag': battle_tag,
             'matches': result,
             'count': len(result)
         }), 200
@@ -111,8 +114,8 @@ def get_match_outcomes(player_id):
         session.close()
 
 
-@players_bp.route('/players/<int:player_id>/preferred_heroes/<int:map_id>', methods=['GET'])
-def get_preferred_heroes(player_id, map_id):
+@players_bp.route('/players/<string:battle_tag>/preferred_heroes/<int:map_id>', methods=['GET'])
+def get_preferred_heroes(battle_tag, map_id):
     """
     Retrieve preferred heroes for a specific player on a specific map.
     Preferred heroes are sorted by time played.
@@ -121,9 +124,11 @@ def get_preferred_heroes(player_id, map_id):
     session = db.get_session()
 
     try:
-        player = session.query(Player).filter_by(player_id=player_id).first()
+        player = session.query(Player).filter_by(user_id=battle_tag).first()
         if not player:
             return jsonify({'error': 'Player not found'}), 404
+
+        player_id = player.player_id
 
         map_obj = session.query(Map).filter_by(map_id=map_id).first()
         if not map_obj:
@@ -160,7 +165,7 @@ def get_preferred_heroes(player_id, map_id):
             })
 
         return jsonify({
-            'player_id': player_id,
+            'battle_tag': battle_tag,
             'map_id': map_id,
             'map_name': map_obj.map_name,
             'preferred_heroes': result

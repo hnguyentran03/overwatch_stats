@@ -12,19 +12,21 @@ from sqlalchemy import func
 stats_bp = Blueprint('stats', __name__)
 
 
-@stats_bp.route('/players/<int:player_id>/win_percentage/hero', methods=['GET'])
-def get_win_percentage_by_hero(player_id):
+@stats_bp.route('/players/<string:battle_tag>/win_percentage/hero', methods=['GET'])
+def get_win_percentage_by_hero(battle_tag):
     """
-    Retrieve win percentage per hero for a specific player.
+    Retrieve win percentage per hero for a specific player by Battle.net ID.
     Returns all heroes, including those with no data (0% win rate).
     """
     db = get_db()
     session = db.get_session()
 
     try:
-        player = session.query(Player).filter_by(player_id=player_id).first()
+        player = session.query(Player).filter_by(user_id=battle_tag).first()
         if not player:
             return jsonify({'error': 'Player not found'}), 404
+
+        player_id = player.player_id
 
         # Get ALL heroes from the database
         all_heroes = session.query(Hero).all()
@@ -74,7 +76,7 @@ def get_win_percentage_by_hero(player_id):
         result.sort(key=lambda x: (role_order.get(x['role'], 3), x['hero_name']))
 
         return jsonify({
-            'player_id': player_id,
+            'battle_tag': battle_tag,
             'hero_stats': result
         }), 200
 
@@ -84,19 +86,21 @@ def get_win_percentage_by_hero(player_id):
         session.close()
 
 
-@stats_bp.route('/players/<int:player_id>/win_percentage/map', methods=['GET'])
-def get_win_percentage_by_map(player_id):
+@stats_bp.route('/players/<string:battle_tag>/win_percentage/map', methods=['GET'])
+def get_win_percentage_by_map(battle_tag):
     """
-    Retrieve win percentage per map for a specific player.
+    Retrieve win percentage per map for a specific player by Battle.net ID.
     Returns all maps, including those with no data (0% win rate).
     """
     db = get_db()
     session = db.get_session()
 
     try:
-        player = session.query(Player).filter_by(player_id=player_id).first()
+        player = session.query(Player).filter_by(user_id=battle_tag).first()
         if not player:
             return jsonify({'error': 'Player not found'}), 404
+
+        player_id = player.player_id
 
         # Get ALL maps from the database
         all_maps = session.query(Map).all()
@@ -125,7 +129,7 @@ def get_win_percentage_by_map(player_id):
         result.sort(key=lambda x: (map_type_order.get(x['map_type'], 5), x['map_name']))
 
         return jsonify({
-            'player_id': player_id,
+            'battle_tag': battle_tag,
             'map_stats': result
         }), 200
 
@@ -135,8 +139,8 @@ def get_win_percentage_by_map(player_id):
         session.close()
 
 
-@stats_bp.route('/players/<int:player_id>/map_stats/<int:map_id>', methods=['GET'])
-def get_map_stats(player_id, map_id):
+@stats_bp.route('/players/<string:battle_tag>/map_stats/<int:map_id>', methods=['GET'])
+def get_map_stats(battle_tag, map_id):
     """
     Retrieve detailed statistics for a specific player on a specific map.
     """
@@ -144,9 +148,11 @@ def get_map_stats(player_id, map_id):
     session = db.get_session()
 
     try:
-        player = session.query(Player).filter_by(player_id=player_id).first()
+        player = session.query(Player).filter_by(user_id=battle_tag).first()
         if not player:
             return jsonify({'error': 'Player not found'}), 404
+
+        player_id = player.player_id
 
         map_obj = session.query(Map).filter_by(map_id=map_id).first()
         if not map_obj:
@@ -199,7 +205,7 @@ def get_map_stats(player_id, map_id):
         ]
 
         result = {
-            'player_id': player_id,
+            'battle_tag': battle_tag,
             'map_id': map_id,
             'map_name': map_obj.map_name,
             'map_type': map_obj.map_type.value,
@@ -216,8 +222,8 @@ def get_map_stats(player_id, map_id):
         session.close()
 
 
-@stats_bp.route('/players/<int:player_id>/map_trends', methods=['GET'])
-def get_map_trends(player_id):
+@stats_bp.route('/players/<string:battle_tag>/map_trends', methods=['GET'])
+def get_map_trends(battle_tag):
     """
     Retrieve trends on maps for a specific player to identify weakest maps.
     Query params: time_window (day, week, month)
@@ -226,9 +232,11 @@ def get_map_trends(player_id):
     session = db.get_session()
 
     try:
-        player = session.query(Player).filter_by(player_id=player_id).first()
+        player = session.query(Player).filter_by(user_id=battle_tag).first()
         if not player:
             return jsonify({'error': 'Player not found'}), 404
+
+        player_id = player.player_id
 
         time_window = request.args.get('time_window', 'week')
         if time_window not in ['day', 'week', 'month']:
@@ -279,7 +287,7 @@ def get_map_trends(player_id):
         weakest_maps = identify_weakest_maps(weakest_maps_data)
 
         return jsonify({
-            'player_id': player_id,
+            'battle_tag': battle_tag,
             'time_window': time_window,
             'map_trends': map_trends,
             'weakest_maps': weakest_maps[:5]  # Top 5 weakest

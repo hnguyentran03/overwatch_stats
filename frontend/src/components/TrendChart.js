@@ -4,7 +4,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 
 const TrendChart = ({ playerId }) => {
   const [trends, setTrends] = useState([]);
-  const [weakestMaps, setWeakestMaps] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [timeWindow, setTimeWindow] = useState('week');
 
@@ -17,7 +17,6 @@ const TrendChart = ({ playerId }) => {
     try {
       const data = await getMapTrends(playerId, timeWindow);
       setTrends(data.map_trends);
-      setWeakestMaps(data.weakest_maps);
     } catch (err) {
       console.error('Error fetching trends:', err);
     } finally {
@@ -69,21 +68,6 @@ const TrendChart = ({ playerId }) => {
           <option value="week">Weekly</option>
           <option value="month">Monthly</option>
         </select>
-      </div>
-
-      <div className="weakest-maps-section">
-        <h3>🎯 Focus Areas - Weakest Maps</h3>
-        <div className="weakest-maps-grid">
-          {weakestMaps.map((map, index) => (
-            <div key={map.map_id} className="weak-map-card">
-              <div className="rank">#{index + 1}</div>
-              <h4>{map.map_name}</h4>
-              <p className="map-type">{map.map_type}</p>
-              <p className="win-rate">{map.win_percentage}% Win Rate</p>
-              <p className="record">{map.wins}W - {map.losses}L ({map.total} games)</p>
-            </div>
-          ))}
-        </div>
       </div>
 
       <div className="chart-section">

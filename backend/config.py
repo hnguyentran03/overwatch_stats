@@ -22,15 +22,15 @@ class DevelopmentConfig(Config):
     DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///overwatch_stats.db')
 
 
-class ProductionConfig(Config):
-    DEBUG = False
-    DATABASE_URL = os.getenv('DATABASE_URL')  # Must be set in production
-    if not DATABASE_URL:
-        raise ValueError("DATABASE_URL must be set for production")
+# class ProductionConfig(Config):
+#     DEBUG = False
+#     DATABASE_URL = os.getenv('DATABASE_URL')  # Must be set in production
+#     if not DATABASE_URL:
+#         raise ValueError("DATABASE_URL must be set for production")
 
 
 config = {
     'development': DevelopmentConfig,
-    'production': ProductionConfig,
+    # 'production': ProductionConfig,
     'default': DevelopmentConfig
 }

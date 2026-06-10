@@ -9,6 +9,9 @@ const apiClient = axios.create({
   },
 });
 
+// Battle.net IDs contain '#' which must be percent-encoded in URLs
+const encodeTag = (battleTag) => encodeURIComponent(battleTag);
+
 export const getMatches = async (startDate, endDate) => {
   const params = {};
   if (startDate) params.start_date = startDate;
@@ -17,40 +20,40 @@ export const getMatches = async (startDate, endDate) => {
   return response.data;
 };
 
-export const getPlayerStats = async (playerId) => {
-  const response = await apiClient.get(`/players/${playerId}/stats`);
+export const getPlayerStats = async (battleTag) => {
+  const response = await apiClient.get(`/players/${encodeTag(battleTag)}/stats`);
   return response.data;
 };
 
-export const getPlayerMatchOutcomes = async (playerId) => {
-  const response = await apiClient.get(`/players/${playerId}/match_outcomes`);
+export const getPlayerMatchOutcomes = async (battleTag) => {
+  const response = await apiClient.get(`/players/${encodeTag(battleTag)}/match_outcomes`);
   return response.data;
 };
 
-export const getWinPercentageByHero = async (playerId) => {
-  const response = await apiClient.get(`/players/${playerId}/win_percentage/hero`);
+export const getWinPercentageByHero = async (battleTag) => {
+  const response = await apiClient.get(`/players/${encodeTag(battleTag)}/win_percentage/hero`);
   return response.data;
 };
 
-export const getWinPercentageByMap = async (playerId) => {
-  const response = await apiClient.get(`/players/${playerId}/win_percentage/map`);
+export const getWinPercentageByMap = async (battleTag) => {
+  const response = await apiClient.get(`/players/${encodeTag(battleTag)}/win_percentage/map`);
   return response.data;
 };
 
-export const getMapStats = async (playerId, mapId) => {
-  const response = await apiClient.get(`/players/${playerId}/map_stats/${mapId}`);
+export const getMapStats = async (battleTag, mapId) => {
+  const response = await apiClient.get(`/players/${encodeTag(battleTag)}/map_stats/${mapId}`);
   return response.data;
 };
 
-export const getMapTrends = async (playerId, timeWindow = 'week') => {
-  const response = await apiClient.get(`/players/${playerId}/map_trends`, {
+export const getMapTrends = async (battleTag, timeWindow = 'week') => {
+  const response = await apiClient.get(`/players/${encodeTag(battleTag)}/map_trends`, {
     params: { time_window: timeWindow }
   });
   return response.data;
 };
 
-export const getPreferredHeroes = async (playerId, mapId) => {
-  const response = await apiClient.get(`/players/${playerId}/preferred_heroes/${mapId}`);
+export const getPreferredHeroes = async (battleTag, mapId) => {
+  const response = await apiClient.get(`/players/${encodeTag(battleTag)}/preferred_heroes/${mapId}`);
   return response.data;
 };
 

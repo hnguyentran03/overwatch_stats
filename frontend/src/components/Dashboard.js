@@ -6,7 +6,7 @@ import TrendChart from './TrendChart';
 import MatchHistory from './MatchHistory';
 
 const Dashboard = () => {
-  const [playerId, setPlayerId] = useState(1);
+  const [playerId, setPlayerId] = useState('PlayerOne#1234');
   const [playerStats, setPlayerStats] = useState(null);
   const [matchOutcomes, setMatchOutcomes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -52,12 +52,12 @@ const Dashboard = () => {
       <header className="dashboard-header">
         <h1>Overwatch Statistics</h1>
         <div className="player-selector">
-          <label>Player ID: </label>
+          <label>Battle Tag: </label>
           <input
-            type="number"
+            type="text"
             value={playerId}
-            onChange={(e) => setPlayerId(parseInt(e.target.value))}
-            min="1"
+            onChange={(e) => setPlayerId(e.target.value)}
+            placeholder="Name#1234"
           />
         </div>
       </header>

@@ -21,9 +21,9 @@ def generate_sample_data():
 
         # Create sample players
         players = [
-            Player(user_id='player1', other_stats='Main DPS player'),
-            Player(user_id='player2', other_stats='Flex support player'),
-            Player(user_id='player3', other_stats='Tank main'),
+            Player(user_id='PlayerOne#1234', other_stats='Main DPS player'),
+            Player(user_id='FlexSupport#5678', other_stats='Flex support player'),
+            Player(user_id='TankMain#9012', other_stats='Tank main'),
         ]
         for player in players:
             session.add(player)
@@ -91,10 +91,10 @@ def generate_sample_data():
             selected_player = players[0] if i < 40 else random.choice(players)
 
             # Select hero based on player preference
-            if selected_player.user_id == 'player1':
+            if selected_player.user_id == 'PlayerOne#1234':
                 # DPS main
                 hero = random.choice(dps)
-            elif selected_player.user_id == 'player2':
+            elif selected_player.user_id == 'FlexSupport#5678':
                 # Support main
                 hero = random.choice(supports)
             else:

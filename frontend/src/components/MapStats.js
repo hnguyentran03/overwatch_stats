@@ -55,18 +55,6 @@ const MapStats = ({ playerId }) => {
         </select>
       </div>
 
-      <div className="weakest-maps-alert">
-        <h3>⚠️ Weakest Maps (Needs Improvement)</h3>
-        <ul>
-          {sortedStats.slice(0, 3).map(map => (
-            <li key={map.map_id}>
-              <strong>{map.map_name}</strong> ({map.map_type}): {map.win_percentage}%
-              ({map.wins}W-{map.losses}L)
-            </li>
-          ))}
-        </ul>
-      </div>
-
       <div className="chart-section">
         <h3>Win Rate by Map</h3>
         <ResponsiveContainer width="100%" height={500}>
