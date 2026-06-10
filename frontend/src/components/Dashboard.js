@@ -6,46 +6,152 @@ import TrendChart from './TrendChart';
 import MatchHistory from './MatchHistory';
 
 const Dashboard = () => {
-  const [playerId, setPlayerId] = useState('PlayerOne#1234');
+  const [inputValue, setInputValue] = useState('PlayerOne#1234');
+  const [searchedTag, setSearchedTag] = useState('PlayerOne#1234');
   const [playerStats, setPlayerStats] = useState(null);
   const [matchOutcomes, setMatchOutcomes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [notFound, setNotFound] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
-    fetchPlayerData();
-  }, [playerId]);
+    fetchPlayerData(searchedTag);
+  }, [searchedTag]);
 
-  const fetchPlayerData = async () => {
+  const fetchPlayerData = async (tag) => {
     setLoading(true);
-    setError(null);
+    setNotFound(false);
+    setPlayerStats(null);
     try {
       const [stats, outcomes] = await Promise.all([
-        getPlayerStats(playerId),
-        getPlayerMatchOutcomes(playerId)
+        getPlayerStats(tag),
+        getPlayerMatchOutcomes(tag)
       ]);
       setPlayerStats(stats);
       setMatchOutcomes(outcomes.matches);
     } catch (err) {
-      setError(err.message);
+      if (err.response?.status === 404) {
+        setNotFound(true);
+      }
       console.error('Error fetching player data:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
-    return <div className="loading">Loading player data...</div>;
-  }
+  const handleSearch = () => {
+    const trimmed = inputValue.trim();
+    if (trimmed && trimmed !== searchedTag) {
+      setSearchedTag(trimmed);
+    } else if (trimmed === searchedTag) {
+      fetchPlayerData(trimmed);
+    }
+  };
 
-  if (error) {
-    return <div className="error">Error: {error}</div>;
-  }
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') handleSearch();
+  };
 
-  if (!playerStats) {
-    return <div className="error">No player data found</div>;
-  }
+  const renderBody = () => {
+    if (loading) {
+      return <div className="loading">Loading player data...</div>;
+    }
+
+    if (notFound) {
+      return (
+        <div className="player-not-found">
+          <p>No player found for <strong>{searchedTag}</strong>.</p>
+        </div>
+      );
+    }
+
+    if (!playerStats) return null;
+
+    return (
+      <>
+        <div className="stats-overview">
+          <div className="stat-card">
+            <h3>Total Matches</h3>
+            <p className="stat-value">{playerStats.total_matches}</p>
+          </div>
+          <div className="stat-card">
+            <h3>Overall Win Rate</h3>
+            <p className="stat-value">{playerStats.win_percentage}%</p>
+            <p className="stat-detail">{playerStats.wins}W – {playerStats.losses}L</p>
+          </div>
+          <div className="stat-card">
+            <h3>Tank Win Rate</h3>
+            <p className="stat-value">
+              {playerStats.tank_win_percentage !== null ? `${playerStats.tank_win_percentage}%` : '—'}
+            </p>
+            <p className="stat-detail">
+              {playerStats.tank_matches > 0 ? `${playerStats.tank_wins}W – ${playerStats.tank_losses}L` : 'No games'}
+            </p>
+          </div>
+          <div className="stat-card">
+            <h3>DPS Win Rate</h3>
+            <p className="stat-value">
+              {playerStats.dps_win_percentage !== null ? `${playerStats.dps_win_percentage}%` : '—'}
+            </p>
+            <p className="stat-detail">
+              {playerStats.dps_matches > 0 ? `${playerStats.dps_wins}W – ${playerStats.dps_losses}L` : 'No games'}
+            </p>
+          </div>
+          <div className="stat-card">
+            <h3>Support Win Rate</h3>
+            <p className="stat-value">
+              {playerStats.support_win_percentage !== null ? `${playerStats.support_win_percentage}%` : '—'}
+            </p>
+            <p className="stat-detail">
+              {playerStats.support_matches > 0 ? `${playerStats.support_wins}W – ${playerStats.support_losses}L` : 'No games'}
+            </p>
+          </div>
+        </div>
+
+        <div className="tabs">
+          <button
+            className={activeTab === 'overview' ? 'active' : ''}
+            onClick={() => setActiveTab('overview')}
+          >
+            Overview
+          </button>
+          <button
+            className={activeTab === 'heroes' ? 'active' : ''}
+            onClick={() => setActiveTab('heroes')}
+          >
+            Hero Stats
+          </button>
+          <button
+            className={activeTab === 'maps' ? 'active' : ''}
+            onClick={() => setActiveTab('maps')}
+          >
+            Map Stats
+          </button>
+          <button
+            className={activeTab === 'trends' ? 'active' : ''}
+            onClick={() => setActiveTab('trends')}
+          >
+            Trends
+          </button>
+        </div>
+
+        <div className="tab-content">
+          {activeTab === 'overview' && (
+            <MatchHistory matches={matchOutcomes} />
+          )}
+          {activeTab === 'heroes' && (
+            <HeroStats playerId={searchedTag} />
+          )}
+          {activeTab === 'maps' && (
+            <MapStats playerId={searchedTag} />
+          )}
+          {activeTab === 'trends' && (
+            <TrendChart playerId={searchedTag} />
+          )}
+        </div>
+      </>
+    );
+  };
 
   return (
     <div className="dashboard">
@@ -55,74 +161,16 @@ const Dashboard = () => {
           <label>Battle Tag: </label>
           <input
             type="text"
-            value={playerId}
-            onChange={(e) => setPlayerId(e.target.value)}
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder="Name#1234"
           />
+          <button className="search-btn" onClick={handleSearch}>Search</button>
         </div>
       </header>
 
-      <div className="stats-overview">
-        <div className="stat-card">
-          <h3>Total Matches</h3>
-          <p className="stat-value">{playerStats.total_matches}</p>
-        </div>
-        <div className="stat-card">
-          <h3>Win Rate</h3>
-          <p className="stat-value">{playerStats.win_percentage}%</p>
-          <p className="stat-detail">{playerStats.wins}W - {playerStats.losses}L</p>
-        </div>
-        <div className="stat-card">
-          <h3>Avg Eliminations</h3>
-          <p className="stat-value">{playerStats.avg_eliminations}</p>
-        </div>
-        <div className="stat-card">
-          <h3>Avg Deaths</h3>
-          <p className="stat-value">{playerStats.avg_deaths}</p>
-        </div>
-      </div>
-
-      <div className="tabs">
-        <button
-          className={activeTab === 'overview' ? 'active' : ''}
-          onClick={() => setActiveTab('overview')}
-        >
-          Overview
-        </button>
-        <button
-          className={activeTab === 'heroes' ? 'active' : ''}
-          onClick={() => setActiveTab('heroes')}
-        >
-          Hero Stats
-        </button>
-        <button
-          className={activeTab === 'maps' ? 'active' : ''}
-          onClick={() => setActiveTab('maps')}
-        >
-          Map Stats
-        </button>
-        <button
-          className={activeTab === 'trends' ? 'active' : ''}
-          onClick={() => setActiveTab('trends')}
-        >
-          Trends
-        </button>
-      </div>
-
-      <div className="tab-content">
-        {activeTab === 'overview' && (
-          <MatchHistory matches={matchOutcomes} />
-        )}
-        {activeTab === 'heroes' && (
-          <HeroStats playerId={playerId} />
-        )}
-        {activeTab === 'maps' && (
-          <MapStats playerId={playerId} />
-        )}
-        {activeTab === 'trends' && (
-          <TrendChart playerId={playerId} />
-        )}
-      </div>
+      {renderBody()}
     </div>
   );
 };

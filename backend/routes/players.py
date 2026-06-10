@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify
-from models import Player, MatchPlayer, Match, Hero, Map
+from models import Player, MatchPlayer, Match, Hero, Map, RoleEnum
 from utils.db import get_db
 from utils.calculations import aggregate_hero_stats
 from sqlalchemy import func
@@ -34,9 +34,30 @@ def get_player_stats(battle_tag):
         # Aggregate stats
         stats = aggregate_hero_stats(match_players)
 
-        # Calculate win/loss
+        # Calculate overall win/loss
         wins = sum(1 for match in matches if match.outcome.value == 'win')
         losses = len(matches) - wins
+
+        # Calculate win rate per role
+        role_win_rates = {}
+        for role in ['tank', 'dps', 'support']:
+            role_matches = session.query(Match).join(
+                MatchPlayer, Match.match_id == MatchPlayer.match_id
+            ).join(
+                Hero, MatchPlayer.hero_id == Hero.hero_id
+            ).filter(
+                MatchPlayer.player_id == player_id,
+                Hero.role == RoleEnum[role]
+            ).all()
+            role_wins = sum(1 for m in role_matches if m.outcome.value == 'win')
+            role_total = len(role_matches)
+            role_losses = role_total - role_wins
+            role_win_rates[f'{role}_matches'] = role_total
+            role_win_rates[f'{role}_wins'] = role_wins
+            role_win_rates[f'{role}_losses'] = role_losses
+            role_win_rates[f'{role}_win_percentage'] = (
+                round(role_wins / role_total * 100, 2) if role_total > 0 else None
+            )
 
         result = {
             'battle_tag': player.user_id,
@@ -44,6 +65,7 @@ def get_player_stats(battle_tag):
             'wins': wins,
             'losses': losses,
             'win_percentage': round(wins / len(matches) * 100, 2) if len(matches) > 0 else 0.0,
+            **role_win_rates,
             **stats
         }
 

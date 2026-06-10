@@ -32,6 +32,18 @@ const MapStats = ({ playerId }) => {
   // Keep the backend sorting order (by map type, then alphabetically)
   const sortedStats = filteredStats;
 
+  const WinRateTooltip = ({ active, payload, label }) => {
+    if (!active || !payload || !payload.length) return null;
+    const d = payload[0].payload;
+    return (
+      <div className="custom-tooltip">
+        <p className="tooltip-title">{label}</p>
+        <p className="tooltip-winrate">{d.win_percentage}%</p>
+        <p className="tooltip-record">{d.wins}W – {d.losses}L</p>
+      </div>
+    );
+  };
+
   // Color code bars: red for low win rate, green for high
   const getColor = (winRate) => {
     if (winRate < 40) return '#ff4444';
@@ -58,21 +70,21 @@ const MapStats = ({ playerId }) => {
       <div className="chart-section">
         <h3>Win Rate by Map</h3>
         <ResponsiveContainer width="100%" height={500}>
-        <BarChart data={sortedStats} margin={{ bottom: 100 }}>
+        <BarChart data={sortedStats} margin={{ top: 10, right: 30, left: 20, bottom: 10 }}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis
             dataKey="map_name"
             angle={-45}
             textAnchor="end"
-            height={140}
+            height={120}
             interval={0}
-            label={{ value: 'Map', position: 'insideBottom', offset: -100 }}
           />
           <YAxis
             domain={[0, 100]}
-            label={{ value: 'Win Percentage (%)', angle: -90, position: 'insideLeft' }}
+            width={65}
+            label={{ value: 'Win %', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
           />
-          <Tooltip />
+          <Tooltip content={<WinRateTooltip />} />
           <Legend />
           <Bar dataKey="win_percentage" name="Win %">
             {sortedStats.map((entry, index) => (

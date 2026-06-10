@@ -1,15 +1,22 @@
-import React from 'react';
+import React, { useState } from 'react';
+
+const PAGE_SIZE = 20;
 
 const MatchHistory = ({ matches }) => {
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
   if (!matches || matches.length === 0) {
     return <div>No match history available.</div>;
   }
+
+  const visibleMatches = matches.slice(0, visibleCount);
+  const hasMore = visibleCount < matches.length;
 
   return (
     <div className="match-history">
       <h2>Match History</h2>
       <h3 style={{ textAlign: 'center', color: '#ff9c00', marginBottom: '20px' }}>
-        Recent Matches (Last 20)
+        Showing {visibleMatches.length} of {matches.length} Matches
       </h3>
       <div className="matches-table-wrapper">
         <table className="matches-table">
@@ -26,7 +33,7 @@ const MatchHistory = ({ matches }) => {
           </tr>
         </thead>
         <tbody>
-          {matches.slice(0, 20).map((match, index) => (
+          {visibleMatches.map((match) => (
             <tr key={match.match_id} className={match.outcome}>
               <td>{new Date(match.date_time).toLocaleDateString()}</td>
               <td>
@@ -57,6 +64,16 @@ const MatchHistory = ({ matches }) => {
         </tbody>
         </table>
       </div>
+      {hasMore && (
+        <div className="see-more-wrapper">
+          <button
+            className="see-more-btn"
+            onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
+          >
+            See More ({matches.length - visibleCount} remaining)
+          </button>
+        </div>
+      )}
     </div>
   );
 };

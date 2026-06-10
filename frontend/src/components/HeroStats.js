@@ -29,6 +29,18 @@ const HeroStats = ({ playerId }) => {
     ? heroStats
     : heroStats.filter(h => h.role === roleFilter);
 
+  const WinRateTooltip = ({ active, payload, label }) => {
+    if (!active || !payload || !payload.length) return null;
+    const d = payload[0].payload;
+    return (
+      <div className="custom-tooltip">
+        <p className="tooltip-title">{label}</p>
+        <p className="tooltip-winrate">{d.win_percentage}%</p>
+        <p className="tooltip-record">{d.wins}W – {d.losses}L</p>
+      </div>
+    );
+  };
+
   // Color code by role: tank = blue, dps = orange, support = green
   const getRoleColor = (role) => {
     switch (role) {
@@ -56,22 +68,21 @@ const HeroStats = ({ playerId }) => {
       <div className="chart-section">
         <h3>Win Rate by Hero</h3>
         <ResponsiveContainer width="100%" height={500}>
-        <BarChart data={filteredStats} margin={{ bottom: 100 }}>
+        <BarChart data={filteredStats} margin={{ top: 10, right: 30, left: 20, bottom: 10 }}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis
             dataKey="hero_name"
             angle={-45}
             textAnchor="end"
-            height={120}
+            height={110}
             interval={0}
-            label={{ value: 'Hero', position: 'insideBottom', offset: -90 }}
           />
           <YAxis
             domain={[0, 100]}
-            label={{ value: 'Win Percentage (%)', angle: -90, position: 'insideLeft' }}
+            width={65}
+            label={{ value: 'Win %', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
           />
-          <Tooltip />
-          <Legend />
+          <Tooltip content={<WinRateTooltip />} />
           <Bar dataKey="win_percentage" name="Win %">
             {filteredStats.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={getRoleColor(entry.role)} />
