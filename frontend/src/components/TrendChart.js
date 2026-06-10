@@ -32,36 +32,33 @@ const TrendChart = ({ playerId }) => {
 
   if (loading) return <div>Loading trends...</div>;
 
-  // Prepare data for overall trend chart
-  const overallTrendData = [];
+  // Prepare data for overall trend chart (cumulative win %)
   const periodMap = new Map();
 
   trends.forEach(mapTrend => {
     mapTrend.trends.forEach(period => {
       const key = period.period_start;
-      if (!periodMap.has(key)) {
-        periodMap.set(key, {
-          period: new Date(key).toLocaleDateString(),
-          matches: 0,
-          wins: 0,
-          losses: 0
-        });
-      }
+      if (!periodMap.has(key)) periodMap.set(key, { wins: 0, losses: 0 });
       const data = periodMap.get(key);
-      data.matches += period.matches_played;
       data.wins += period.wins;
       data.losses += period.losses;
     });
   });
 
-  periodMap.forEach((value) => {
-    overallTrendData.push({
-      ...value,
-      win_percentage: value.matches > 0 ? ((value.wins / value.matches) * 100).toFixed(2) : 0
+  let cumWins = 0, cumLosses = 0;
+  const overallTrendData = [...periodMap.entries()]
+    .sort((a, b) => new Date(a[0]) - new Date(b[0]))
+    .map(([key, value]) => {
+      cumWins += value.wins;
+      cumLosses += value.losses;
+      const total = cumWins + cumLosses;
+      return {
+        period: new Date(key).toLocaleDateString(),
+        wins: cumWins,
+        losses: cumLosses,
+        win_percentage: total > 0 ? ((cumWins / total) * 100).toFixed(2) : 0,
+      };
     });
-  });
-
-  overallTrendData.sort((a, b) => new Date(a.period) - new Date(b.period));
 
   const WinRateTooltip = ({ active, payload, label }) => {
     if (!active || !payload || !payload.length) return null;
@@ -139,12 +136,20 @@ const TrendChart = ({ playerId }) => {
                     <p className="no-data">No data for this game mode.</p>
                   ) : (
                     mapsInGroup.map((mapTrend) => {
-                      const trendData = mapTrend.trends.map(t => ({
-                        period: new Date(t.period_start).toLocaleDateString(),
-                        win_percentage: t.win_percentage,
-                        wins: t.wins,
-                        losses: t.losses,
-                      }));
+                      let mCumWins = 0, mCumLosses = 0;
+                      const trendData = [...mapTrend.trends]
+                        .sort((a, b) => new Date(a.period_start) - new Date(b.period_start))
+                        .map(t => {
+                          mCumWins += t.wins;
+                          mCumLosses += t.losses;
+                          const total = mCumWins + mCumLosses;
+                          return {
+                            period: new Date(t.period_start).toLocaleDateString(),
+                            win_percentage: total > 0 ? ((mCumWins / total) * 100).toFixed(2) : 0,
+                            wins: mCumWins,
+                            losses: mCumLosses,
+                          };
+                        });
 
                       return (
                         <div key={mapTrend.map_id} className="individual-map-trend">

@@ -41,12 +41,11 @@ const HeroStats = ({ playerId }) => {
     );
   };
 
-  // Color code by role: tank = blue, dps = orange, support = green
   const getRoleColor = (role) => {
     switch (role) {
-      case 'tank': return '#4A90E2';
+      case 'tank': return '#2196F3';
       case 'dps': return '#ff9c00';
-      case 'support': return '#44C944';
+      case 'support': return '#4CAF50';
       default: return '#999999';
     }
   };

@@ -1,3 +1,20 @@
+:root {
+  --accent:          #ff9c00;
+  --accent-rgb:      255, 156, 0;
+  --accent-hover:    #ffb733;
+  --color-win:       #4CAF50;
+  --color-win-rgb:   76, 175, 80;
+  --color-loss:      #f44336;
+  --color-loss-rgb:  244, 67, 54;
+  --color-tie:       #ffc400;
+  --role-tank:       #2196F3;
+  --role-support:    #4CAF50;
+  --role-dps:        #f44336;
+  --bg-dark:         #1a1a1a;
+  --bg-medium:       #2d2d2d;
+  --text-muted:      #aaaaaa;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -6,7 +23,7 @@
 
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-medium) 100%);
   color: #ffffff;
   min-height: 100vh;
 }
@@ -26,14 +43,14 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  background: rgba(255, 156, 0, 0.1);
+  background: rgba(var(--accent-rgb), 0.1);
   border-radius: 10px;
   margin-bottom: 30px;
-  border: 2px solid #ff9c00;
+  border: 2px solid var(--accent);
 }
 
 .dashboard-header h1 {
-  color: #ff9c00;
+  color: var(--accent);
   font-size: 2.5rem;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
@@ -51,16 +68,16 @@ body {
 
 .player-selector input {
   padding: 8px 15px;
-  border: 2px solid #ff9c00;
+  border: 2px solid var(--accent);
   border-radius: 5px;
-  background: #2d2d2d;
+  background: var(--bg-medium);
   color: #ffffff;
   font-size: 1rem;
 }
 
 .search-btn {
   padding: 8px 18px;
-  background: #ff9c00;
+  background: var(--accent);
   border: none;
   border-radius: 5px;
   color: #000000;
@@ -71,13 +88,13 @@ body {
 }
 
 .search-btn:hover {
-  background: #ffb733;
+  background: var(--accent-hover);
 }
 
 .player-not-found {
   margin-top: 60px;
   text-align: center;
-  color: #aaaaaa;
+  color: var(--text-muted);
   font-size: 1.2rem;
 }
 
@@ -90,7 +107,7 @@ body {
 
 .stat-card {
   background: rgba(255, 255, 255, 0.05);
-  border: 2px solid #ff9c00;
+  border: 2px solid var(--accent);
   border-radius: 10px;
   padding: 20px;
   text-align: center;
@@ -99,11 +116,11 @@ body {
 
 .stat-card:hover {
   transform: translateY(-5px);
-  background: rgba(255, 156, 0, 0.1);
+  background: rgba(var(--accent-rgb), 0.1);
 }
 
 .stat-card h3 {
-  color: #ff9c00;
+  color: var(--accent);
   font-size: 0.9rem;
   margin-bottom: 10px;
   text-transform: uppercase;
@@ -116,7 +133,7 @@ body {
 }
 
 .stat-detail {
-  color: #aaaaaa;
+  color: var(--text-muted);
   font-size: 0.9rem;
   margin-top: 5px;
 }
@@ -125,7 +142,7 @@ body {
   display: flex;
   gap: 10px;
   margin-bottom: 20px;
-  border-bottom: 2px solid #ff9c00;
+  border-bottom: 2px solid var(--accent);
   padding-bottom: 10px;
 }
 
@@ -141,12 +158,12 @@ body {
 }
 
 .tabs button:hover {
-  background: rgba(255, 156, 0, 0.1);
-  border-color: #ff9c00;
+  background: rgba(var(--accent-rgb), 0.1);
+  border-color: var(--accent);
 }
 
 .tabs button.active {
-  background: #ff9c00;
+  background: var(--accent);
   color: #000000;
   font-weight: bold;
 }
@@ -166,15 +183,15 @@ body {
 }
 
 .controls label {
-  color: #ff9c00;
+  color: var(--accent);
   font-weight: bold;
 }
 
 .controls select {
   padding: 8px 15px;
-  border: 2px solid #ff9c00;
+  border: 2px solid var(--accent);
   border-radius: 5px;
-  background: #2d2d2d;
+  background: var(--bg-medium);
   color: #ffffff;
   font-size: 1rem;
   cursor: pointer;
@@ -194,15 +211,15 @@ body {
 }
 
 .stats-table thead {
-  background: rgba(255, 156, 0, 0.2);
+  background: rgba(var(--accent-rgb), 0.2);
 }
 
 .stats-table th {
   padding: 10px 8px;
   text-align: center;
-  color: #ff9c00;
+  color: var(--accent);
   font-weight: bold;
-  border-bottom: 2px solid #ff9c00;
+  border-bottom: 2px solid var(--accent);
   font-size: 0.9rem;
   white-space: nowrap;
   position: sticky;
@@ -224,7 +241,7 @@ body {
   text-align: left;
   position: sticky;
   left: 0;
-  background: #2d2d2d;
+  background: var(--bg-medium);
   z-index: 5;
   min-width: 120px;
 }
@@ -239,12 +256,12 @@ body {
 }
 
 .stats-table tbody tr:hover {
-  background: rgba(255, 156, 0, 0.1);
+  background: rgba(var(--accent-rgb), 0.1);
 }
 
-.role-tank { color: #4CAF50; }
-.role-dps { color: #f44336; }
-.role-support { color: #2196F3; }
+.role-tank { color: var(--role-tank); }
+.role-dps { color: var(--role-dps); }
+.role-support { color: var(--role-support); }
 
 .role-badge {
   display: inline-block;
@@ -256,22 +273,22 @@ body {
 }
 
 .role-badge.role-tank {
-  background: #4CAF50;
-  color: #000;
+  background: var(--role-tank);
+  color: #fff;
 }
 
 .role-badge.role-dps {
-  background: #f44336;
+  background: var(--role-dps);
   color: #fff;
 }
 
 .role-badge.role-support {
-  background: #2196F3;
-  color: #fff;
+  background: var(--role-support);
+  color: #000;
 }
 
-.wins { color: #4CAF50; font-weight: bold; }
-.losses { color: #f44336; font-weight: bold; }
+.wins { color: var(--color-win); font-weight: bold; }
+.losses { color: var(--color-loss); font-weight: bold; }
 
 .matches-table-wrapper {
   overflow-x: auto;
@@ -287,14 +304,14 @@ body {
 }
 
 .matches-table thead {
-  background: rgba(255, 156, 0, 0.2);
+  background: rgba(var(--accent-rgb), 0.2);
 }
 
 .matches-table th {
   padding: 10px 8px;
   text-align: center;
-  color: #ff9c00;
-  border-bottom: 2px solid #ff9c00;
+  color: var(--accent);
+  border-bottom: 2px solid var(--accent);
   font-size: 0.9rem;
   white-space: nowrap;
 }
@@ -316,11 +333,11 @@ body {
 }
 
 .matches-table tr.win {
-  background: rgba(76, 175, 80, 0.1);
+  background: rgba(var(--color-win-rgb), 0.1);
 }
 
 .matches-table tr.loss {
-  background: rgba(244, 67, 54, 0.1);
+  background: rgba(var(--color-loss-rgb), 0.1);
 }
 
 .matches-table tr.tie {
@@ -328,36 +345,36 @@ body {
 }
 
 .outcome-win {
-  color: #4CAF50;
+  color: var(--color-win);
   font-weight: bold;
 }
 
 .outcome-loss {
-  color: #f44336;
+  color: var(--color-loss);
   font-weight: bold;
 }
 
 .outcome-tie {
-  color: #ffc400;
+  color: var(--color-tie);
   font-weight: bold;
 }
 
 .map-type {
   display: block;
   font-size: 0.8rem;
-  color: #aaaaaa;
+  color: var(--text-muted);
 }
 
 .weakest-maps-alert {
-  background: rgba(244, 67, 54, 0.2);
-  border: 2px solid #f44336;
+  background: rgba(var(--color-loss-rgb), 0.2);
+  border: 2px solid var(--color-loss);
   border-radius: 10px;
   padding: 20px;
   margin-bottom: 30px;
 }
 
 .weakest-maps-alert h3 {
-  color: #f44336;
+  color: var(--color-loss);
   margin-bottom: 15px;
 }
 
@@ -371,7 +388,7 @@ body {
 }
 
 .weak-map {
-  background: rgba(244, 67, 54, 0.1);
+  background: rgba(var(--color-loss-rgb), 0.1);
 }
 
 .weakest-maps-section {
@@ -386,8 +403,8 @@ body {
 }
 
 .weak-map-card {
-  background: rgba(244, 67, 54, 0.1);
-  border: 2px solid #f44336;
+  background: rgba(var(--color-loss-rgb), 0.1);
+  border: 2px solid var(--color-loss);
   border-radius: 10px;
   padding: 15px;
   position: relative;
@@ -402,7 +419,7 @@ body {
   position: absolute;
   top: 10px;
   right: 10px;
-  background: #f44336;
+  background: var(--color-loss);
   color: #fff;
   width: 30px;
   height: 30px;
@@ -414,14 +431,14 @@ body {
 }
 
 .weak-map-card h4 {
-  color: #f44336;
+  color: var(--color-loss);
   margin-bottom: 5px;
 }
 
 .weak-map-card .win-rate {
   font-size: 1.5rem;
   font-weight: bold;
-  color: #f44336;
+  color: var(--color-loss);
   margin: 10px 0;
 }
 
@@ -431,7 +448,7 @@ body {
 
 .chart-section h3, .hero-stats h2, .map-stats h2 {
   text-align: center;
-  color: #ff9c00;
+  color: var(--accent);
   margin-bottom: 20px;
   font-size: 1.8rem;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
@@ -442,21 +459,21 @@ body {
 }
 
 .custom-tooltip {
-  background: #1a1a1a;
-  border: 1px solid #ff9c00;
+  background: var(--bg-dark);
+  border: 1px solid var(--accent);
   border-radius: 6px;
   padding: 10px 14px;
   text-align: left;
 }
 
 .tooltip-title {
-  color: #aaaaaa;
+  color: var(--text-muted);
   font-size: 0.85rem;
   margin-bottom: 6px;
 }
 
 .tooltip-winrate {
-  color: #ff9c00;
+  color: var(--accent);
   font-size: 1.4rem;
   font-weight: bold;
   margin-bottom: 4px;
@@ -477,13 +494,13 @@ body {
 }
 
 .recharts-label {
-  fill: #ff9c00;
+  fill: var(--accent);
   font-weight: bold;
 }
 
 .game-mode-group {
   margin-bottom: 15px;
-  border: 1px solid rgba(255, 156, 0, 0.3);
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
   border-radius: 10px;
   overflow: hidden;
 }
@@ -494,9 +511,9 @@ body {
   align-items: center;
   gap: 12px;
   padding: 14px 20px;
-  background: rgba(255, 156, 0, 0.1);
+  background: rgba(var(--accent-rgb), 0.1);
   border: none;
-  color: #ff9c00;
+  color: var(--accent);
   font-size: 1.1rem;
   font-weight: bold;
   cursor: pointer;
@@ -505,12 +522,12 @@ body {
 }
 
 .game-mode-header:hover {
-  background: rgba(255, 156, 0, 0.2);
+  background: rgba(var(--accent-rgb), 0.2);
 }
 
 .game-mode-count {
   font-size: 0.85rem;
-  color: #aaaaaa;
+  color: var(--text-muted);
   font-weight: normal;
 }
 
@@ -535,12 +552,12 @@ body {
 }
 
 .individual-map-trend h4 {
-  color: #ff9c00;
+  color: var(--accent);
   margin-bottom: 15px;
 }
 
 .no-data {
-  color: #aaaaaa;
+  color: var(--text-muted);
   font-style: italic;
   padding: 10px 0;
 }
@@ -554,16 +571,16 @@ body {
 .see-more-btn {
   padding: 10px 30px;
   background: transparent;
-  border: 2px solid #ff9c00;
+  border: 2px solid var(--accent);
   border-radius: 5px;
-  color: #ff9c00;
+  color: var(--accent);
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .see-more-btn:hover {
-  background: #ff9c00;
+  background: var(--accent);
   color: #000000;
   font-weight: bold;
 }
@@ -575,7 +592,7 @@ body {
 }
 
 .error {
-  color: #f44336;
+  color: var(--color-loss);
 }
 
 /* Additional styling for better presentation */
@@ -585,7 +602,7 @@ body {
 
 .hero-stats h2, .map-stats h2, .trend-chart h2, .match-history h2 {
   text-align: center;
-  color: #ff9c00;
+  color: var(--accent);
   margin-bottom: 30px;
   font-size: 2rem;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
@@ -597,7 +614,7 @@ body {
   text-align: center;
   margin-bottom: 30px;
   padding: 15px;
-  background: rgba(255, 156, 0, 0.1);
+  background: rgba(var(--accent-rgb), 0.1);
   border-radius: 8px;
 }
 
@@ -624,13 +641,13 @@ body {
 
 .stats-table-wrapper::-webkit-scrollbar-thumb,
 .matches-table-wrapper::-webkit-scrollbar-thumb {
-  background: #ff9c00;
+  background: var(--accent);
   border-radius: 4px;
 }
 
 .stats-table-wrapper::-webkit-scrollbar-thumb:hover,
 .matches-table-wrapper::-webkit-scrollbar-thumb:hover {
-  background: #ffb733;
+  background: var(--accent-hover);
 }
 
 @media (max-width: 768px) {
