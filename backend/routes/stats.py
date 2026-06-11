@@ -15,8 +15,9 @@ stats_bp = Blueprint('stats', __name__)
 @stats_bp.route('/players/<string:battle_tag>/win_percentage/hero', methods=['GET'])
 def get_win_percentage_by_hero(battle_tag):
     """
-    Retrieve win percentage per hero for a specific player by Battle.net ID.
-    Returns all heroes, including those with no data (0% win rate).
+    Retrieve win percentage per hero for a specific player.
+    Optional ?map_id=N filter returns only heroes played on that map.
+    Without map_id, returns all heroes (including those with 0 games).
     """
     db = get_db()
     session = db.get_session()
@@ -27,25 +28,39 @@ def get_win_percentage_by_hero(battle_tag):
             return jsonify({'error': 'Player not found'}), 404
 
         player_id = player.player_id
+        map_id = request.args.get('map_id', type=int)
 
-        # Get ALL heroes from the database
-        all_heroes = session.query(Hero).all()
+        if map_id:
+            hero_ids = session.query(MatchPlayer.hero_id).join(
+                Match, MatchPlayer.match_id == Match.match_id
+            ).filter(
+                MatchPlayer.player_id == player_id,
+                Match.map_id == map_id
+            ).distinct().all()
+            heroes = [session.query(Hero).filter_by(hero_id=hid).first() for (hid,) in hero_ids]
+        else:
+            heroes = session.query(Hero).all()
 
         result = []
-        for hero in all_heroes:
-            # Get matches for this hero
-            matches = session.query(Match).join(
+        for hero in heroes:
+            matches_q = session.query(Match).join(
                 MatchPlayer, Match.match_id == MatchPlayer.match_id
             ).filter(
                 MatchPlayer.player_id == player_id,
                 MatchPlayer.hero_id == hero.hero_id
-            ).distinct().all()
-
-            # Get stats for this hero
-            match_players = session.query(MatchPlayer).filter(
+            )
+            mps_q = session.query(MatchPlayer).filter(
                 MatchPlayer.player_id == player_id,
                 MatchPlayer.hero_id == hero.hero_id
-            ).all()
+            )
+            if map_id:
+                matches_q = matches_q.filter(Match.map_id == map_id)
+                mps_q = mps_q.join(
+                    Match, MatchPlayer.match_id == Match.match_id
+                ).filter(Match.map_id == map_id)
+
+            matches = matches_q.distinct().all()
+            match_players = mps_q.all()
 
             win_stats = calculate_win_percentage(matches)
             performance_stats = aggregate_hero_stats(match_players)
@@ -114,6 +129,8 @@ def get_win_percentage_by_map(battle_tag):
         if role and role not in ['tank', 'dps', 'support']:
             return jsonify({'error': 'Invalid role. Use tank, dps, or support'}), 400
 
+        hero_id = request.args.get('hero_id', type=int)
+
         # Get ALL maps from the database
         all_maps = session.query(Map).all()
 
@@ -130,6 +147,8 @@ def get_win_percentage_by_map(battle_tag):
                 query = query.join(Hero, MatchPlayer.hero_id == Hero.hero_id).filter(
                     Hero.role == RoleEnum(role)
                 )
+            if hero_id:
+                query = query.filter(MatchPlayer.hero_id == hero_id)
             matches = query.distinct().all()
 
             win_stats = calculate_win_percentage(matches)
@@ -194,32 +213,45 @@ def get_map_stats(battle_tag, map_id):
         win_stats = calculate_win_percentage(matches)
         performance_stats = aggregate_hero_stats(match_players)
 
-        # Get hero breakdown on this map
-        hero_breakdown = session.query(
-            Hero.hero_name,
-            Hero.role,
-            func.count(MatchPlayer.id).label('games')
-        ).join(
-            MatchPlayer, Hero.hero_id == MatchPlayer.hero_id
-        ).join(
+        # Get distinct heroes played on this map, then compute full stats per hero
+        hero_ids = session.query(MatchPlayer.hero_id).join(
             Match, MatchPlayer.match_id == Match.match_id
         ).filter(
             MatchPlayer.player_id == player_id,
             Match.map_id == map_id
-        ).group_by(
-            Hero.hero_name, Hero.role
-        ).order_by(
-            func.count(MatchPlayer.id).desc()
-        ).all()
+        ).distinct().all()
 
-        heroes_played = [
-            {
-                'hero_name': hero_name,
-                'role': role.value,
-                'games': games
-            }
-            for hero_name, role, games in hero_breakdown
-        ]
+        heroes_played = []
+        for (hero_id,) in hero_ids:
+            hero = session.query(Hero).filter_by(hero_id=hero_id).first()
+
+            hero_matches = session.query(Match).join(
+                MatchPlayer, Match.match_id == MatchPlayer.match_id
+            ).filter(
+                MatchPlayer.player_id == player_id,
+                MatchPlayer.hero_id == hero_id,
+                Match.map_id == map_id
+            ).distinct().all()
+
+            hero_mps = session.query(MatchPlayer).join(
+                Match, MatchPlayer.match_id == Match.match_id
+            ).filter(
+                MatchPlayer.player_id == player_id,
+                MatchPlayer.hero_id == hero_id,
+                Match.map_id == map_id
+            ).all()
+
+            hero_win_stats = calculate_win_percentage(hero_matches)
+            hero_perf_stats = aggregate_hero_stats(hero_mps)
+
+            heroes_played.append({
+                'hero_name': hero.hero_name,
+                'role': hero.role.value,
+                **hero_win_stats,
+                **hero_perf_stats,
+            })
+
+        heroes_played.sort(key=lambda x: x['total'], reverse=True)
 
         result = {
             'battle_tag': battle_tag,

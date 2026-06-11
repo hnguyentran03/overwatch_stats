@@ -1,21 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { getWinPercentageByMap } from '../api/client';
+import { getWinPercentageByMap, getWinPercentageByHero } from '../api/client';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import MapDetailModal from './MapDetailModal';
 
 const MapStats = ({ playerId }) => {
   const [mapStats, setMapStats] = useState([]);
+  const [allHeroes, setAllHeroes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mapTypeFilter, setMapTypeFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
+  const [heroFilter, setHeroFilter] = useState('all');
+  const [selectedMap, setSelectedMap] = useState(null);
+
+  useEffect(() => {
+    getWinPercentageByHero(playerId)
+      .then(data => setAllHeroes(data.hero_stats.filter(h => h.total > 0)))
+      .catch(err => console.error('Error fetching heroes:', err));
+  }, [playerId]);
 
   useEffect(() => {
     fetchMapStats();
-  }, [playerId, roleFilter]);
+  }, [playerId, roleFilter, heroFilter]);
 
   const fetchMapStats = async () => {
     setLoading(true);
     try {
-      const data = await getWinPercentageByMap(playerId, roleFilter === 'all' ? null : roleFilter);
+      const data = await getWinPercentageByMap(
+        playerId,
+        roleFilter === 'all' ? null : roleFilter,
+        heroFilter === 'all' ? null : heroFilter
+      );
       setMapStats(data.map_stats);
     } catch (err) {
       console.error('Error fetching map stats:', err);
@@ -23,6 +37,15 @@ const MapStats = ({ playerId }) => {
       setLoading(false);
     }
   };
+
+  const handleRoleChange = (e) => {
+    setRoleFilter(e.target.value);
+    setHeroFilter('all');
+  };
+
+  const heroOptions = roleFilter === 'all'
+    ? allHeroes
+    : allHeroes.filter(h => h.role === roleFilter);
 
   if (loading) return <div>Loading map stats...</div>;
 
@@ -39,8 +62,8 @@ const MapStats = ({ playerId }) => {
     return (
       <div className="custom-tooltip">
         <p className="tooltip-title">{label}</p>
-        <p className="tooltip-winrate">{d.win_percentage}%</p>
-        <p className="tooltip-record">{d.wins}W – {d.losses}L</p>
+        <p className="tooltip-winrate">{d.total > 0 ? `${d.win_percentage}%` : '-%'}</p>
+        <p className="tooltip-record">{d.wins}W – {d.losses}L – {d.draws}D</p>
       </div>
     );
   };
@@ -55,6 +78,14 @@ const MapStats = ({ playerId }) => {
     <div className="map-stats">
       <h2>Map Performance Statistics</h2>
 
+      {selectedMap && (
+        <MapDetailModal
+          map={selectedMap}
+          playerId={playerId}
+          onClose={() => setSelectedMap(null)}
+        />
+      )}
+
       <div className="controls">
         <label>Map Type: </label>
         <select value={mapTypeFilter} onChange={(e) => setMapTypeFilter(e.target.value)}>
@@ -66,11 +97,18 @@ const MapStats = ({ playerId }) => {
           <option value="Flashpoint">Flashpoint</option>
         </select>
         <label>Role: </label>
-        <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+        <select value={roleFilter} onChange={handleRoleChange}>
           <option value="all">All Roles</option>
           <option value="tank">Tank</option>
           <option value="dps">DPS</option>
           <option value="support">Support</option>
+        </select>
+        <label>Hero: </label>
+        <select value={heroFilter} onChange={(e) => setHeroFilter(e.target.value)}>
+          <option value="all">All Heroes</option>
+          {heroOptions.map(h => (
+            <option key={h.hero_id} value={h.hero_id}>{h.hero_name}</option>
+          ))}
         </select>
       </div>
 
@@ -119,15 +157,20 @@ const MapStats = ({ playerId }) => {
         </thead>
         <tbody>
           {sortedStats.map((map) => (
-            <tr key={map.map_id} className={map.win_percentage < 45 ? 'weak-map' : ''}>
+            <tr
+              key={map.map_id}
+              className={`clickable-row${map.total > 0 && map.win_percentage < 45 ? ' weak-map' : ''}`}
+              onClick={() => setSelectedMap(map)}
+              title="Click for hero breakdown"
+            >
               <td className="map-name">{map.map_name}</td>
               <td>{map.map_type}</td>
               <td>{map.total}</td>
               <td className="wins">{map.wins}</td>
               <td className="losses">{map.losses}</td>
               <td>{map.draws}</td>
-              <td className="win-rate" style={{ color: getColor(map.win_percentage) }}>
-                {map.win_percentage}%
+              <td className="win-rate" style={{ color: map.total > 0 ? getColor(map.win_percentage) : 'var(--text-muted)' }}>
+                {map.total > 0 ? `${map.win_percentage}%` : '-%'}
               </td>
             </tr>
           ))}

@@ -30,14 +30,17 @@ export const getPlayerMatchOutcomes = async (battleTag) => {
   return response.data;
 };
 
-export const getWinPercentageByHero = async (battleTag) => {
-  const response = await apiClient.get(`/players/${encodeTag(battleTag)}/win_percentage/hero`);
+export const getWinPercentageByHero = async (battleTag, mapId = null) => {
+  const params = {};
+  if (mapId) params.map_id = mapId;
+  const response = await apiClient.get(`/players/${encodeTag(battleTag)}/win_percentage/hero`, { params });
   return response.data;
 };
 
-export const getWinPercentageByMap = async (battleTag, role = null) => {
+export const getWinPercentageByMap = async (battleTag, role = null, heroId = null) => {
   const params = {};
   if (role) params.role = role;
+  if (heroId) params.hero_id = heroId;
   const response = await apiClient.get(`/players/${encodeTag(battleTag)}/win_percentage/map`, { params });
   return response.data;
 };
