@@ -39,7 +39,7 @@ def get_win_percentage_by_hero(battle_tag):
             ).filter(
                 MatchPlayer.player_id == player_id,
                 MatchPlayer.hero_id == hero.hero_id
-            ).all()
+            ).distinct().all()
 
             # Get stats for this hero
             match_players = session.query(MatchPlayer).filter(
@@ -130,7 +130,7 @@ def get_win_percentage_by_map(battle_tag):
                 query = query.join(Hero, MatchPlayer.hero_id == Hero.hero_id).filter(
                     Hero.role == RoleEnum(role)
                 )
-            matches = query.all()
+            matches = query.distinct().all()
 
             win_stats = calculate_win_percentage(matches)
 
@@ -181,7 +181,7 @@ def get_map_stats(battle_tag, map_id):
         ).filter(
             MatchPlayer.player_id == player_id,
             Match.map_id == map_id
-        ).all()
+        ).distinct().all()
 
         # Get match players on this map
         match_players = session.query(MatchPlayer).join(
@@ -287,7 +287,7 @@ def get_map_trends(battle_tag):
                 query = query.join(Hero, MatchPlayer.hero_id == Hero.hero_id).filter(
                     Hero.role == RoleEnum(role)
                 )
-            matches = query.order_by(Match.date_time).all()
+            matches = query.distinct().order_by(Match.date_time).all()
 
             # Calculate trends
             trends = calculate_map_trends(matches, time_window)

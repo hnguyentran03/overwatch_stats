@@ -12,7 +12,7 @@ FILLER_COUNT = 25
 
 
 def make_score(outcome, map_type):
-    if outcome == OutcomeEnum.tie:
+    if outcome == OutcomeEnum.draw:
         return random.choice(['2-2', '1-1', '3-3'])
     if map_type == 'Control':
         if outcome == OutcomeEnum.win:
@@ -65,7 +65,7 @@ def add_match(session, player, hero_pool, maps, start_date, day_range, filler_pl
 
     map_obj = random.choice(maps)
     outcome = random.choices(
-        [OutcomeEnum.win, OutcomeEnum.loss, OutcomeEnum.tie],
+        [OutcomeEnum.win, OutcomeEnum.loss, OutcomeEnum.draw],
         weights=[47, 47, 6]
     )[0]
     score = make_score(outcome, map_obj.map_type.value)
@@ -75,6 +75,7 @@ def add_match(session, player, hero_pool, maps, start_date, day_range, filler_pl
         map_id=map_obj.map_id,
         final_score=score,
         outcome=outcome,
+        duration=round(random.uniform(10, 22), 2),
     )
     session.add(match)
     session.flush()
@@ -94,24 +95,40 @@ def add_match(session, player, hero_pool, maps, start_date, day_range, filler_pl
     for h in team2_bans:
         session.add(BannedHero(match_id=match.match_id, hero_id=h.hero_id, team=TeamEnum.team2))
 
-    # Tracked player — always team1
-    hero = random.choice(hero_pool)
-    tracked_role = hero.role.value
-    elims, final_blows, assists, deaths, damage, healing, mitigation = make_stats(tracked_role, outcome)
-    session.add(MatchPlayer(
-        match_id=match.match_id,
-        player_id=player.player_id,
-        hero_id=hero.hero_id,
-        team=TeamEnum.team1,
-        eliminations=elims,
-        final_blows=final_blows,
-        assists=assists,
-        deaths=deaths,
-        damage_done=round(damage, 2),
-        healing_done=round(healing, 2),
-        damage_mitigated=round(mitigation, 2),
-        time_played=round(random.uniform(8, 15), 2),
-    ))
+    # Tracked player — always team1, same role, not banned, 1–3 heroes
+    # Pick one role for this match (for Player 1 who has all heroes, this is random)
+    roles_in_pool = list(set(h.role.value for h in hero_pool))
+    tracked_role = random.choice(roles_in_pool)
+    role_pool = [h for h in hero_pool if h.role.value == tracked_role and h.hero_id not in banned_ids]
+
+    num_slots = random.choices([1, 2, 3], weights=[50, 35, 15])[0]
+    chosen_heroes = random.sample(role_pool, min(num_slots, len(role_pool)))
+    time_fracs = [random.random() for _ in chosen_heroes]
+    total = sum(time_fracs)
+    time_fracs = [f / total for f in time_fracs]
+
+    # Track heroes used per team to prevent duplicates across teammates
+    team1_used = set()
+    team2_used = set()
+    for hero in chosen_heroes:
+        team1_used.add(hero.hero_id)
+
+    for hero, frac in zip(chosen_heroes, time_fracs):
+        e, fb, a, d, dmg, heal, mit = make_stats(tracked_role, outcome)
+        session.add(MatchPlayer(
+            match_id=match.match_id,
+            player_id=player.player_id,
+            hero_id=hero.hero_id,
+            team=TeamEnum.team1,
+            eliminations=int(e * frac),
+            final_blows=int(fb * frac),
+            assists=int(a * frac),
+            deaths=max(0, int(d * frac)),
+            damage_done=round(dmg * frac, 2),
+            healing_done=round(heal * frac, 2),
+            damage_mitigated=round(mit * frac, 2),
+            time_played=round(frac * match.duration, 2),
+        ))
 
     # 9 filler players: 4 complete team1 (1T2D2S), 5 fill team2 (1T2D2S)
     team1_roles = {'tank': 1, 'dps': 2, 'support': 2}
@@ -128,22 +145,38 @@ def add_match(session, player, hero_pool, maps, start_date, day_range, filler_pl
     slots = [(r, TeamEnum.team1) for r in team1_role_list] + [(r, TeamEnum.team2) for r in team2_role_list]
 
     for filler, (filler_role, filler_team) in zip(chosen_fillers, slots):
-        filler_hero = random.choice(heroes_by_role[filler_role])
-        f_elims, f_fb, f_assists, f_deaths, f_damage, f_healing, f_mitigation = make_stats(filler_role, outcome)
-        session.add(MatchPlayer(
-            match_id=match.match_id,
-            player_id=filler.player_id,
-            hero_id=filler_hero.hero_id,
-            team=filler_team,
-            eliminations=f_elims,
-            final_blows=f_fb,
-            assists=f_assists,
-            deaths=f_deaths,
-            damage_done=round(f_damage, 2),
-            healing_done=round(f_healing, 2),
-            damage_mitigated=round(f_mitigation, 2),
-            time_played=round(random.uniform(8, 15), 2),
-        ))
+        used_set = team1_used if filler_team == TeamEnum.team1 else team2_used
+        # Same role, not banned, not already played by a teammate this match
+        available_filler = [h for h in heroes_by_role[filler_role]
+                            if h.hero_id not in banned_ids and h.hero_id not in used_set]
+        if not available_filler:
+            available_filler = [h for h in heroes_by_role[filler_role] if h.hero_id not in banned_ids]
+        if not available_filler:
+            available_filler = heroes_by_role[filler_role]
+        num_filler_slots = random.choices([1, 2], weights=[70, 30])[0]
+        filler_heroes = random.sample(available_filler, min(num_filler_slots, len(available_filler)))
+        for fh in filler_heroes:
+            used_set.add(fh.hero_id)
+        filler_fracs = [random.random() for _ in filler_heroes]
+        filler_total = sum(filler_fracs)
+        filler_fracs = [f / filler_total for f in filler_fracs]
+
+        for fh, ff in zip(filler_heroes, filler_fracs):
+            fe, ffb, fa, fd, fdmg, fheal, fmit = make_stats(filler_role, outcome)
+            session.add(MatchPlayer(
+                match_id=match.match_id,
+                player_id=filler.player_id,
+                hero_id=fh.hero_id,
+                team=filler_team,
+                eliminations=int(fe * ff),
+                final_blows=int(ffb * ff),
+                assists=int(fa * ff),
+                deaths=max(0, int(fd * ff)),
+                damage_done=round(fdmg * ff, 2),
+                healing_done=round(fheal * ff, 2),
+                damage_mitigated=round(fmit * ff, 2),
+                time_played=round(ff * match.duration, 2),
+            ))
 
 
 def generate_sample_data():

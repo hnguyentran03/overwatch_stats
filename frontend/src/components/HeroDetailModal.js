@@ -26,8 +26,11 @@ const HeroDetailModal = ({ hero, onClose }) => {
   };
 
   const fmt = (n) => Math.round(n).toLocaleString();
-  const formatTime = (minutes) =>
-    minutes < 120 ? `${Math.round(minutes)} min` : `${Math.round(minutes / 60)} hr`;
+  const formatTime = (minutes) => {
+    if (minutes < 100) return `${Math.round(minutes)} min`;
+    const hrs = Math.round(minutes / 60);
+    return `${hrs} ${hrs === 1 ? 'hr' : 'hrs'}`;
+  };
   const fmtDec = (n) => Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
@@ -49,7 +52,7 @@ const HeroDetailModal = ({ hero, onClose }) => {
           <Stat label="Games" value={hero.total} />
           <Stat label="Wins" value={hero.wins} />
           <Stat label="Losses" value={hero.losses} />
-          <Stat label="Ties" value={hero.ties} />
+          <Stat label="Draws" value={hero.draws} />
           <Stat label="Time Played" value={formatTime(hero.total_time_played)} />
         </StatGroup>
 

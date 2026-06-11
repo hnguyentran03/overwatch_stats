@@ -11,21 +11,21 @@ def calculate_win_percentage(matches):
         return {
             'wins': 0,
             'losses': 0,
-            'ties': 0,
+            'draws': 0,
             'total': 0,
             'win_percentage': 0.0
         }
 
     wins = sum(1 for match in matches if match.outcome.value == 'win')
     losses = sum(1 for match in matches if match.outcome.value == 'loss')
-    ties = len(matches) - wins - losses
+    draws = len(matches) - wins - losses
     total = len(matches)
     win_percentage = (wins / total * 100) if total > 0 else 0.0
 
     return {
         'wins': wins,
         'losses': losses,
-        'ties': ties,
+        'draws': draws,
         'total': total,
         'win_percentage': round(win_percentage, 2)
     }

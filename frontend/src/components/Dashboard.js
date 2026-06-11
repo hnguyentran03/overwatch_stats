@@ -79,7 +79,7 @@ const Dashboard = () => {
           <div className="stat-card">
             <h3>Overall Win Rate</h3>
             <p className="stat-value">{playerStats.win_percentage}%</p>
-            <p className="stat-detail">{playerStats.wins}W – {playerStats.losses}L – {playerStats.ties}T</p>
+            <p className="stat-detail">{playerStats.wins}W – {playerStats.losses}L – {playerStats.draws}D</p>
           </div>
           <div className="stat-card">
             <h3>Tank Win Rate</h3>
@@ -87,7 +87,7 @@ const Dashboard = () => {
               {playerStats.tank_win_percentage !== null ? `${playerStats.tank_win_percentage}%` : '—'}
             </p>
             <p className="stat-detail">
-              {playerStats.tank_matches > 0 ? `${playerStats.tank_wins}W – ${playerStats.tank_losses}L – ${playerStats.tank_ties}T` : 'No games'}
+              {playerStats.tank_matches > 0 ? `${playerStats.tank_wins}W – ${playerStats.tank_losses}L – ${playerStats.tank_draws}D` : 'No games'}
             </p>
           </div>
           <div className="stat-card">
@@ -96,7 +96,7 @@ const Dashboard = () => {
               {playerStats.dps_win_percentage !== null ? `${playerStats.dps_win_percentage}%` : '—'}
             </p>
             <p className="stat-detail">
-              {playerStats.dps_matches > 0 ? `${playerStats.dps_wins}W – ${playerStats.dps_losses}L – ${playerStats.dps_ties}T` : 'No games'}
+              {playerStats.dps_matches > 0 ? `${playerStats.dps_wins}W – ${playerStats.dps_losses}L – ${playerStats.dps_draws}D` : 'No games'}
             </p>
           </div>
           <div className="stat-card">
@@ -105,7 +105,7 @@ const Dashboard = () => {
               {playerStats.support_win_percentage !== null ? `${playerStats.support_win_percentage}%` : '—'}
             </p>
             <p className="stat-detail">
-              {playerStats.support_matches > 0 ? `${playerStats.support_wins}W – ${playerStats.support_losses}L – ${playerStats.support_ties}T` : 'No games'}
+              {playerStats.support_matches > 0 ? `${playerStats.support_wins}W – ${playerStats.support_losses}L – ${playerStats.support_draws}D` : 'No games'}
             </p>
           </div>
         </div>
@@ -160,6 +160,7 @@ const Dashboard = () => {
       {selectedMatchId && (
         <MatchDetailModal
           matchId={selectedMatchId}
+          battleTag={searchedTag}
           onClose={() => setSelectedMatchId(null)}
         />
       )}

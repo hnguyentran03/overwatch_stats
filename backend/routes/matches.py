@@ -75,32 +75,66 @@ def get_match_details(match_id):
             return jsonify({'error': 'Match not found'}), 404
 
         from models import MatchPlayer, Player
-        players_data = session.query(MatchPlayer, Player, Hero).join(
+        # Order by time_played desc so each player's primary hero (most time) comes first in their group
+        rows = session.query(MatchPlayer, Player, Hero).join(
             Player, MatchPlayer.player_id == Player.player_id
         ).join(
             Hero, MatchPlayer.hero_id == Hero.hero_id
-        ).filter(MatchPlayer.match_id == match_id).all()
+        ).filter(MatchPlayer.match_id == match_id).order_by(
+            MatchPlayer.time_played.desc()
+        ).all()
 
         banned_heroes = session.query(BannedHero, Hero).join(
             Hero, BannedHero.hero_id == Hero.hero_id
         ).filter(BannedHero.match_id == match_id).all()
 
+        player_groups = {}
+        player_order = []
+        for mp, player, hero in rows:
+            pid = player.player_id
+            if pid not in player_groups:
+                player_groups[pid] = {
+                    'player_id': player.player_id,
+                    'battle_tag': player.user_id,
+                    'team': mp.team.value,
+                    'slots': []
+                }
+                player_order.append(pid)
+            player_groups[pid]['slots'].append((mp, hero))
+
         players_result = []
-        for mp, player, hero in players_data:
+        for pid in player_order:
+            data = player_groups[pid]
+            slots = data['slots']  # sorted by time_played desc
+            primary_mp, primary_hero = slots[0]
             players_result.append({
-                'player_id': player.player_id,
-                'battle_tag': player.user_id,
-                'team': mp.team.value,
-                'hero_name': hero.hero_name,
-                'hero_role': hero.role.value,
-                'eliminations': mp.eliminations,
-                'final_blows': mp.final_blows,
-                'assists': mp.assists,
-                'deaths': mp.deaths,
-                'damage_done': mp.damage_done,
-                'healing_done': mp.healing_done,
-                'damage_mitigated': mp.damage_mitigated,
-                'time_played': mp.time_played,
+                'player_id': data['player_id'],
+                'battle_tag': data['battle_tag'],
+                'team': data['team'],
+                'primary_hero': primary_hero.hero_name,
+                'primary_hero_role': primary_hero.role.value,
+                'heroes': [
+                    {
+                        'hero_name': h.hero_name,
+                        'hero_role': h.role.value,
+                        'time_played': round(mp.time_played, 2),
+                        'eliminations': mp.eliminations,
+                        'final_blows': mp.final_blows,
+                        'assists': mp.assists,
+                        'deaths': mp.deaths,
+                        'damage_done': round(mp.damage_done, 2),
+                        'healing_done': round(mp.healing_done, 2),
+                        'damage_mitigated': round(mp.damage_mitigated, 2),
+                    }
+                    for mp, h in slots
+                ],
+                'eliminations': sum(mp.eliminations for mp, h in slots),
+                'final_blows': sum(mp.final_blows for mp, h in slots),
+                'assists': sum(mp.assists for mp, h in slots),
+                'deaths': sum(mp.deaths for mp, h in slots),
+                'damage_done': sum(mp.damage_done for mp, h in slots),
+                'healing_done': sum(mp.healing_done for mp, h in slots),
+                'damage_mitigated': sum(mp.damage_mitigated for mp, h in slots),
             })
 
         bans = {'team1': [], 'team2': []}
@@ -117,6 +151,7 @@ def get_match_details(match_id):
             'map_type': match.map.map_type.value,
             'final_score': match.final_score,
             'outcome': match.outcome.value,
+            'duration': match.duration,
             'players': players_result,
             'bans': bans,
         }), 200

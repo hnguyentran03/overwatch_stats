@@ -2,6 +2,12 @@ import React, { useState } from 'react';
 
 const PAGE_SIZE = 20;
 
+const formatTime = (minutes) => {
+  const m = Math.floor(minutes);
+  const s = Math.round((minutes % 1) * 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+};
+
 const MatchHistory = ({ matches, onMatchClick }) => {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
@@ -27,6 +33,7 @@ const MatchHistory = ({ matches, onMatchClick }) => {
             <th>Hero</th>
             <th>Result</th>
             <th>Score</th>
+            <th>Duration</th>
             <th>K/A/D</th>
             <th>Damage</th>
             <th>Healing</th>
@@ -40,7 +47,10 @@ const MatchHistory = ({ matches, onMatchClick }) => {
               onClick={() => onMatchClick && onMatchClick(match.match_id)}
               title="Click for match details"
             >
-              <td>{new Date(match.date_time).toLocaleDateString()}</td>
+              <td>
+                <div>{new Date(match.date_time).toLocaleDateString()}</div>
+                <div className="match-time-of-day">{new Date(match.date_time).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}</div>
+              </td>
               <td>
                 <div className="map-info">
                   <strong>{match.map_name}</strong>
@@ -49,16 +59,20 @@ const MatchHistory = ({ matches, onMatchClick }) => {
               </td>
               <td>
                 <div className="hero-info">
-                  <strong>{match.hero_played}</strong>
-                  <span className={`role-badge role-${match.hero_role}`}>
-                    {match.hero_role.toUpperCase()}
+                  <strong>{match.primary_hero}</strong>
+                  <span className={`role-badge role-${match.primary_hero_role}`}>
+                    {match.primary_hero_role.toUpperCase()}
                   </span>
+                  {match.heroes_played.length > 1 && (
+                    <span className="hero-swap-badge">+{match.heroes_played.length - 1}</span>
+                  )}
                 </div>
               </td>
               <td className={`outcome-${match.outcome}`}>
-                {match.outcome === 'win' ? '✓ WIN' : match.outcome === 'tie' ? '= TIE' : '✗ LOSS'}
+                {match.outcome === 'win' ? '✓ WIN' : match.outcome === 'draw' ? '= DRAW' : '✗ LOSS'}
               </td>
               <td>{match.final_score}</td>
+              <td>{formatTime(match.duration)}</td>
               <td className="kda">
                 {match.eliminations}/{match.assists}/{match.deaths}
               </td>

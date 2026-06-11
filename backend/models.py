@@ -9,7 +9,7 @@ Base = declarative_base()
 class OutcomeEnum(enum.Enum):
     win = "win"
     loss = "loss"
-    tie = "tie"
+    draw = "draw"
 
 
 class RoleEnum(enum.Enum):
@@ -39,6 +39,7 @@ class Match(Base):
     map_id = Column(Integer, ForeignKey('maps.map_id'), nullable=False)
     final_score = Column(String, nullable=False)
     outcome = Column(Enum(OutcomeEnum), nullable=False)
+    duration = Column(Float, default=0.0)  # match length in minutes
 
     map = relationship("Map", back_populates="matches")
     match_players = relationship("MatchPlayer", back_populates="match")

@@ -6,7 +6,7 @@
   --color-win-rgb:   76, 175, 80;
   --color-loss:      #f44336;
   --color-loss-rgb:  244, 67, 54;
-  --color-tie:       #ffc400;
+  --color-draw:       #ffc400;
   --role-tank:       #2196F3;
   --role-support:    #4CAF50;
   --role-dps:        #f44336;
@@ -340,7 +340,7 @@ body {
   background: rgba(var(--color-loss-rgb), 0.1);
 }
 
-.matches-table tr.tie {
+.matches-table tr.draw {
   background: rgba(255, 196, 0, 0.08);
 }
 
@@ -354,14 +354,31 @@ body {
   font-weight: bold;
 }
 
-.outcome-tie {
-  color: var(--color-tie);
+.outcome-draw {
+  color: var(--color-draw);
   font-weight: bold;
 }
 
 .map-type {
   display: block;
   font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.match-time-of-day {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.hero-swap-badge {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: normal;
+  margin-left: 5px;
+  background: rgba(255, 255, 255, 0.08);
   color: var(--text-muted);
 }
 
@@ -859,6 +876,52 @@ body {
   font-size: 1.1rem;
   font-weight: bold;
   color: #ffffff;
+}
+
+.expand-chevron {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
+.hero-breakdown-row {
+  background: rgba(0, 0, 0, 0.35) !important;
+}
+
+.hero-breakdown-cell {
+  padding: 0 !important;
+}
+
+.hero-breakdown-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.hero-breakdown-table th {
+  padding: 6px 10px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: bold;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.hero-breakdown-table td {
+  padding: 7px 10px;
+  text-align: center;
+  font-size: 0.85rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.hero-breakdown-table th:first-child,
+.hero-breakdown-table td:first-child {
+  text-align: left;
+  padding-left: 32px;
+}
+
+.hero-breakdown-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
 .ban-entry {

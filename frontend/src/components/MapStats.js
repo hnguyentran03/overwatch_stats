@@ -47,9 +47,8 @@ const MapStats = ({ playerId }) => {
 
   // Color code bars: red for low win rate, green for high
   const getColor = (winRate) => {
-    if (winRate < 40) return '#ff4444';
-    if (winRate < 50) return '#ff9c00';
-    return '#44ff44';
+    if (winRate >= 48 && winRate <= 52) return '#ffc400';
+    return winRate > 52 ? '#44ff44' : '#ff4444';
   };
 
   return (
@@ -114,6 +113,7 @@ const MapStats = ({ playerId }) => {
             <th>Games</th>
             <th>Wins</th>
             <th>Losses</th>
+            <th>Draws</th>
             <th>Win %</th>
           </tr>
         </thead>
@@ -125,6 +125,7 @@ const MapStats = ({ playerId }) => {
               <td>{map.total}</td>
               <td className="wins">{map.wins}</td>
               <td className="losses">{map.losses}</td>
+              <td>{map.draws}</td>
               <td className="win-rate" style={{ color: getColor(map.win_percentage) }}>
                 {map.win_percentage}%
               </td>

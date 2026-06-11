@@ -90,8 +90,16 @@ const HeroStats = ({ playerId }) => {
     );
   };
 
-  const formatTime = (minutes) =>
-    minutes < 120 ? `${Math.round(minutes)} min` : `${Math.round(minutes / 60)} hr`;
+  const formatTime = (minutes) => {
+    if (minutes < 100) return `${Math.round(minutes)} min`;
+    const hrs = Math.round(minutes / 60);
+    return `${hrs} ${hrs === 1 ? 'hr' : 'hrs'}`;
+  };
+
+  const getWinRateColor = (pct) => {
+    if (pct >= 48 && pct <= 52) return '#ffc400';
+    return pct > 52 ? '#44ff44' : '#ff4444';
+  };
 
   const getRoleColor = (role) => {
     switch (role) {
@@ -178,7 +186,7 @@ const HeroStats = ({ playerId }) => {
                 <td>{hero.total}</td>
                 <td className="wins">{hero.wins}</td>
                 <td className="losses">{hero.losses}</td>
-                <td className="win-rate">{hero.win_percentage}%</td>
+                <td className="win-rate" style={{ color: getWinRateColor(hero.win_percentage) }}>{hero.win_percentage}%</td>
                 <td>{formatTime(hero.total_time_played)}</td>
                 <td>{hero.total_eliminations}</td>
                 <td>{hero.total_final_blows}</td>

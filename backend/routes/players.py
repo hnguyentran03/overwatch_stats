@@ -26,18 +26,18 @@ def get_player_stats(battle_tag):
         # Get all match players for this player
         match_players = session.query(MatchPlayer).filter_by(player_id=player_id).all()
 
-        # Get all matches for this player
+        # Get all matches for this player (distinct — player may have multiple hero rows per match)
         matches = session.query(Match).join(
             MatchPlayer, Match.match_id == MatchPlayer.match_id
-        ).filter(MatchPlayer.player_id == player_id).all()
+        ).filter(MatchPlayer.player_id == player_id).distinct().all()
 
         # Aggregate stats
         stats = aggregate_hero_stats(match_players)
 
-        # Calculate overall win/loss/tie
+        # Calculate overall win/loss/draw
         wins = sum(1 for match in matches if match.outcome.value == 'win')
         losses = sum(1 for match in matches if match.outcome.value == 'loss')
-        ties = len(matches) - wins - losses
+        draws = len(matches) - wins - losses
 
         # Calculate win rate per role
         role_win_rates = {}
@@ -49,15 +49,15 @@ def get_player_stats(battle_tag):
             ).filter(
                 MatchPlayer.player_id == player_id,
                 Hero.role == RoleEnum[role]
-            ).all()
+            ).distinct().all()
             role_wins = sum(1 for m in role_matches if m.outcome.value == 'win')
             role_losses = sum(1 for m in role_matches if m.outcome.value == 'loss')
             role_total = len(role_matches)
-            role_ties = role_total - role_wins - role_losses
+            role_draws = role_total - role_wins - role_losses
             role_win_rates[f'{role}_matches'] = role_total
             role_win_rates[f'{role}_wins'] = role_wins
             role_win_rates[f'{role}_losses'] = role_losses
-            role_win_rates[f'{role}_ties'] = role_ties
+            role_win_rates[f'{role}_draws'] = role_draws
             role_win_rates[f'{role}_win_percentage'] = (
                 round(role_wins / role_total * 100, 2) if role_total > 0 else None
             )
@@ -67,7 +67,7 @@ def get_player_stats(battle_tag):
             'total_matches': len(matches),
             'wins': wins,
             'losses': losses,
-            'ties': ties,
+            'draws': draws,
             'win_percentage': round(wins / len(matches) * 100, 2) if len(matches) > 0 else 0.0,
             **role_win_rates,
             **stats
@@ -96,8 +96,9 @@ def get_match_outcomes(battle_tag):
 
         player_id = player.player_id
 
-        # Get all matches for this player with their performance
-        matches_query = session.query(Match, MatchPlayer, Hero, Map).join(
+        # Fetch all hero slots for this player across all matches in one query.
+        # ORDER BY date desc, then time_played desc so the primary hero (most time) is first per match.
+        rows = session.query(Match, MatchPlayer, Hero, Map).join(
             MatchPlayer, Match.match_id == MatchPlayer.match_id
         ).join(
             Hero, MatchPlayer.hero_id == Hero.hero_id
@@ -105,27 +106,46 @@ def get_match_outcomes(battle_tag):
             Map, Match.map_id == Map.map_id
         ).filter(
             MatchPlayer.player_id == player_id
-        ).order_by(Match.date_time.desc())
+        ).order_by(Match.date_time.desc(), MatchPlayer.time_played.desc()).all()
 
-        matches = matches_query.all()
+        # Group by match, preserving date-desc order
+        match_groups = {}
+        match_order = []
+        for match, mp, hero, map_obj in rows:
+            mid = match.match_id
+            if mid not in match_groups:
+                match_groups[mid] = {'match': match, 'map_obj': map_obj, 'slots': []}
+                match_order.append(mid)
+            match_groups[mid]['slots'].append((mp, hero))
 
         result = []
-        for match, match_player, hero, map_obj in matches:
+        for mid in match_order:
+            data = match_groups[mid]
+            match = data['match']
+            map_obj = data['map_obj']
+            slots = data['slots']  # already sorted by time_played desc
+
+            primary_mp, primary_hero = slots[0]
             result.append({
-                'match_id': match.match_id,
+                'match_id': mid,
                 'date_time': match.date_time.isoformat(),
                 'map_name': map_obj.map_name,
                 'map_type': map_obj.map_type.value,
                 'outcome': match.outcome.value,
                 'final_score': match.final_score,
-                'hero_played': hero.hero_name,
-                'hero_role': hero.role.value,
-                'eliminations': match_player.eliminations,
-                'assists': match_player.assists,
-                'deaths': match_player.deaths,
-                'damage_done': match_player.damage_done,
-                'healing_done': match_player.healing_done,
-                'damage_mitigated': match_player.damage_mitigated,
+                'duration': match.duration,
+                'primary_hero': primary_hero.hero_name,
+                'primary_hero_role': primary_hero.role.value,
+                'heroes_played': [
+                    {'hero_name': h.hero_name, 'hero_role': h.role.value, 'time_played': round(mp.time_played, 2)}
+                    for mp, h in slots
+                ],
+                'eliminations': sum(mp.eliminations for mp, h in slots),
+                'assists': sum(mp.assists for mp, h in slots),
+                'deaths': sum(mp.deaths for mp, h in slots),
+                'damage_done': sum(mp.damage_done for mp, h in slots),
+                'healing_done': sum(mp.healing_done for mp, h in slots),
+                'damage_mitigated': sum(mp.damage_mitigated for mp, h in slots),
             })
 
         return jsonify({
