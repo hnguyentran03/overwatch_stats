@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 const PAGE_SIZE = 20;
 
-const MatchHistory = ({ matches }) => {
+const MatchHistory = ({ matches, onMatchClick }) => {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   if (!matches || matches.length === 0) {
@@ -34,7 +34,12 @@ const MatchHistory = ({ matches }) => {
         </thead>
         <tbody>
           {visibleMatches.map((match) => (
-            <tr key={match.match_id} className={match.outcome}>
+            <tr
+              key={match.match_id}
+              className={`${match.outcome} clickable-row`}
+              onClick={() => onMatchClick && onMatchClick(match.match_id)}
+              title="Click for match details"
+            >
               <td>{new Date(match.date_time).toLocaleDateString()}</td>
               <td>
                 <div className="map-info">

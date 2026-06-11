@@ -62,6 +62,7 @@ class MatchPlayer(Base):
     match_id = Column(Integer, ForeignKey('matches.match_id'), nullable=False)
     player_id = Column(Integer, ForeignKey('players.player_id'), nullable=False)
     hero_id = Column(Integer, ForeignKey('heroes.hero_id'), nullable=False)
+    team = Column(Enum(TeamEnum), nullable=False, default=TeamEnum.team1)
     eliminations = Column(Integer, default=0)
     final_blows = Column(Integer, default=0)
     assists = Column(Integer, default=0)

@@ -8,6 +8,8 @@ from utils.db import init_db
 from models import Player, Match, MatchPlayer, Hero, Map, BannedHero, OutcomeEnum, TeamEnum
 from config import DevelopmentConfig
 
+FILLER_COUNT = 25
+
 
 def make_score(outcome, map_type):
     if outcome == OutcomeEnum.tie:
@@ -56,7 +58,7 @@ def make_stats(role, outcome):
     return elims, final_blows, assists, deaths, damage, healing, mitigation
 
 
-def add_match(session, player, hero_pool, maps, start_date, day_range):
+def add_match(session, player, hero_pool, maps, start_date, day_range, filler_players, heroes_by_role):
     days_offset = random.randint(0, day_range)
     hours_offset = random.randint(0, 23)
     match_date = start_date + timedelta(days=days_offset, hours=hours_offset)
@@ -77,22 +79,30 @@ def add_match(session, player, hero_pool, maps, start_date, day_range):
     session.add(match)
     session.flush()
 
-    all_heroes = session.query(Hero).all()
-    team1_bans = random.sample(all_heroes, 2)
-    team2_bans = random.sample([h for h in all_heroes if h not in team1_bans], 2)
+    # 4 total bans (2 per team), max 2 heroes per role across both teams
+    ban_role_pool = ['tank', 'tank', 'dps', 'dps', 'support', 'support']
+    ban_roles = random.sample(ban_role_pool, 4)
+    banned_ids = set()
+    team1_bans, team2_bans = [], []
+    for i, role in enumerate(ban_roles):
+        candidates = [h for h in heroes_by_role[role] if h.hero_id not in banned_ids]
+        chosen = random.choice(candidates)
+        banned_ids.add(chosen.hero_id)
+        (team1_bans if i < 2 else team2_bans).append(chosen)
     for h in team1_bans:
         session.add(BannedHero(match_id=match.match_id, hero_id=h.hero_id, team=TeamEnum.team1))
     for h in team2_bans:
         session.add(BannedHero(match_id=match.match_id, hero_id=h.hero_id, team=TeamEnum.team2))
 
+    # Tracked player — always team1
     hero = random.choice(hero_pool)
-    elims, final_blows, assists, deaths, damage, healing, mitigation = make_stats(hero.role.value, outcome)
-    time_played = random.uniform(8, 15)
-
+    tracked_role = hero.role.value
+    elims, final_blows, assists, deaths, damage, healing, mitigation = make_stats(tracked_role, outcome)
     session.add(MatchPlayer(
         match_id=match.match_id,
         player_id=player.player_id,
         hero_id=hero.hero_id,
+        team=TeamEnum.team1,
         eliminations=elims,
         final_blows=final_blows,
         assists=assists,
@@ -100,8 +110,40 @@ def add_match(session, player, hero_pool, maps, start_date, day_range):
         damage_done=round(damage, 2),
         healing_done=round(healing, 2),
         damage_mitigated=round(mitigation, 2),
-        time_played=round(time_played, 2),
+        time_played=round(random.uniform(8, 15), 2),
     ))
+
+    # 9 filler players: 4 complete team1 (1T2D2S), 5 fill team2 (1T2D2S)
+    team1_roles = {'tank': 1, 'dps': 2, 'support': 2}
+    team1_roles[tracked_role] -= 1
+    team1_role_list = []
+    for role, count in team1_roles.items():
+        team1_role_list.extend([role] * count)
+    random.shuffle(team1_role_list)
+
+    team2_role_list = ['tank', 'dps', 'dps', 'support', 'support']
+    random.shuffle(team2_role_list)
+
+    chosen_fillers = random.sample(filler_players, 9)
+    slots = [(r, TeamEnum.team1) for r in team1_role_list] + [(r, TeamEnum.team2) for r in team2_role_list]
+
+    for filler, (filler_role, filler_team) in zip(chosen_fillers, slots):
+        filler_hero = random.choice(heroes_by_role[filler_role])
+        f_elims, f_fb, f_assists, f_deaths, f_damage, f_healing, f_mitigation = make_stats(filler_role, outcome)
+        session.add(MatchPlayer(
+            match_id=match.match_id,
+            player_id=filler.player_id,
+            hero_id=filler_hero.hero_id,
+            team=filler_team,
+            eliminations=f_elims,
+            final_blows=f_fb,
+            assists=f_assists,
+            deaths=f_deaths,
+            damage_done=round(f_damage, 2),
+            healing_done=round(f_healing, 2),
+            damage_mitigated=round(f_mitigation, 2),
+            time_played=round(random.uniform(8, 15), 2),
+        ))
 
 
 def generate_sample_data():
@@ -115,39 +157,49 @@ def generate_sample_data():
     session = db.get_session()
 
     try:
-        players = [
+        tracked_players = [
             Player(user_id='PlayerOne#1234', other_stats='Main player'),
             Player(user_id='FlexSupport#5678', other_stats='Flex support player'),
             Player(user_id='TankMain#9012', other_stats='Tank main'),
         ]
-        for p in players:
+        for p in tracked_players:
             session.add(p)
+
+        filler_players = [
+            Player(user_id=f'Player{i:02d}#{1000 + i}') for i in range(1, FILLER_COUNT + 1)
+        ]
+        for p in filler_players:
+            session.add(p)
+
         session.commit()
 
         heroes = session.query(Hero).all()
         maps = session.query(Map).all()
-        tanks = [h for h in heroes if h.role.value == 'tank']
-        supports = [h for h in heroes if h.role.value == 'support']
+        heroes_by_role = {
+            'tank':    [h for h in heroes if h.role.value == 'tank'],
+            'dps':     [h for h in heroes if h.role.value == 'dps'],
+            'support': [h for h in heroes if h.role.value == 'support'],
+        }
 
         start_date = datetime.now() - timedelta(days=365)
 
         # Player 1: 560 matches across all heroes and maps
         for _ in range(560):
-            add_match(session, players[0], heroes, maps, start_date, 365)
+            add_match(session, tracked_players[0], heroes, maps, start_date, 365, filler_players, heroes_by_role)
 
         # Player 2: support main, 30 matches
         for _ in range(30):
-            add_match(session, players[1], supports, maps, start_date, 365)
+            add_match(session, tracked_players[1], heroes_by_role['support'], maps, start_date, 365, filler_players, heroes_by_role)
 
         # Player 3: tank main, 30 matches
         for _ in range(30):
-            add_match(session, players[2], tanks, maps, start_date, 365)
+            add_match(session, tracked_players[2], heroes_by_role['tank'], maps, start_date, 365, filler_players, heroes_by_role)
 
         session.commit()
         print('Sample data generated successfully.')
-        print(f'  Players:      {session.query(Player).count()}')
-        print(f'  Matches:      {session.query(Match).count()}')
-        print(f'  Match records:{session.query(MatchPlayer).count()}')
+        print(f'  Players:       {session.query(Player).count()} ({len(tracked_players)} tracked, {len(filler_players)} filler)')
+        print(f'  Matches:       {session.query(Match).count()}')
+        print(f'  Match records: {session.query(MatchPlayer).count()}')
 
     except Exception as e:
         session.rollback()

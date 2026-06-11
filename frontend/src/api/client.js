@@ -59,6 +59,11 @@ export const getPreferredHeroes = async (battleTag, mapId) => {
   return response.data;
 };
 
+export const getMatchDetails = async (matchId) => {
+  const response = await apiClient.get(`/matches/${matchId}/details`);
+  return response.data;
+};
+
 export const getBannedHeroes = async (matchId) => {
   const response = await apiClient.get(`/matches/${matchId}/banned_heroes`);
   return response.data;

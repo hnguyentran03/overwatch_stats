@@ -61,6 +61,72 @@ def get_matches():
         session.close()
 
 
+@matches_bp.route('/matches/<int:match_id>/details', methods=['GET'])
+def get_match_details(match_id):
+    """
+    Retrieve full details for a specific match: all players' stats and hero bans.
+    """
+    db = get_db()
+    session = db.get_session()
+
+    try:
+        match = session.query(Match).filter_by(match_id=match_id).first()
+        if not match:
+            return jsonify({'error': 'Match not found'}), 404
+
+        from models import MatchPlayer, Player
+        players_data = session.query(MatchPlayer, Player, Hero).join(
+            Player, MatchPlayer.player_id == Player.player_id
+        ).join(
+            Hero, MatchPlayer.hero_id == Hero.hero_id
+        ).filter(MatchPlayer.match_id == match_id).all()
+
+        banned_heroes = session.query(BannedHero, Hero).join(
+            Hero, BannedHero.hero_id == Hero.hero_id
+        ).filter(BannedHero.match_id == match_id).all()
+
+        players_result = []
+        for mp, player, hero in players_data:
+            players_result.append({
+                'player_id': player.player_id,
+                'battle_tag': player.user_id,
+                'team': mp.team.value,
+                'hero_name': hero.hero_name,
+                'hero_role': hero.role.value,
+                'eliminations': mp.eliminations,
+                'final_blows': mp.final_blows,
+                'assists': mp.assists,
+                'deaths': mp.deaths,
+                'damage_done': mp.damage_done,
+                'healing_done': mp.healing_done,
+                'damage_mitigated': mp.damage_mitigated,
+                'time_played': mp.time_played,
+            })
+
+        bans = {'team1': [], 'team2': []}
+        for banned_hero, hero in banned_heroes:
+            bans[banned_hero.team.value].append({
+                'hero_name': hero.hero_name,
+                'role': hero.role.value,
+            })
+
+        return jsonify({
+            'match_id': match_id,
+            'date_time': match.date_time.isoformat(),
+            'map_name': match.map.map_name,
+            'map_type': match.map.map_type.value,
+            'final_score': match.final_score,
+            'outcome': match.outcome.value,
+            'players': players_result,
+            'bans': bans,
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        session.close()
+
+
 @matches_bp.route('/matches/<int:match_id>/banned_heroes', methods=['GET'])
 def get_banned_heroes(match_id):
     """

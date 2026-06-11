@@ -4,6 +4,7 @@ import HeroStats from './HeroStats';
 import MapStats from './MapStats';
 import TrendChart from './TrendChart';
 import MatchHistory from './MatchHistory';
+import MatchDetailModal from './MatchDetailModal';
 
 const Dashboard = () => {
   const [inputValue, setInputValue] = useState('PlayerOne#1234');
@@ -13,6 +14,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [selectedMatchId, setSelectedMatchId] = useState(null);
 
   useEffect(() => {
     fetchPlayerData(searchedTag);
@@ -137,7 +139,7 @@ const Dashboard = () => {
 
         <div className="tab-content">
           {activeTab === 'overview' && (
-            <MatchHistory matches={matchOutcomes} />
+            <MatchHistory matches={matchOutcomes} onMatchClick={setSelectedMatchId} />
           )}
           {activeTab === 'heroes' && (
             <HeroStats playerId={searchedTag} />
@@ -155,6 +157,12 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard">
+      {selectedMatchId && (
+        <MatchDetailModal
+          matchId={selectedMatchId}
+          onClose={() => setSelectedMatchId(null)}
+        />
+      )}
       <header className="dashboard-header">
         <h1>Overwatch Statistics</h1>
         <div className="player-selector">
