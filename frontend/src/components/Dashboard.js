@@ -71,6 +71,7 @@ const Dashboard = () => {
 
     return (
       <>
+        <h2 className="player-heading">{searchedTag}</h2>
         <div className="stats-overview">
           <div className="stat-card">
             <h3>Total Matches</h3>

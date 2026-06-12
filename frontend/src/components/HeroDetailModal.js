@@ -14,7 +14,7 @@ const StatGroup = ({ title, children }) => (
   </div>
 );
 
-const HeroDetailModal = ({ hero, onClose }) => {
+const HeroDetailModal = ({ hero, onClose, mapName = null }) => {
   useEffect(() => {
     const handleKey = (e) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handleKey);
@@ -42,6 +42,7 @@ const HeroDetailModal = ({ hero, onClose }) => {
           <div className="modal-map">
             <span className="modal-map-name">{hero.hero_name}</span>
             <span className="map-type">{hero.role.toUpperCase()}</span>
+            {mapName && <span className="map-type">{mapName}</span>}
           </div>
           <div className={`modal-outcome outcome-${hero.win_percentage >= 50 ? 'win' : 'loss'}`}>
             {hero.win_percentage}% Win Rate

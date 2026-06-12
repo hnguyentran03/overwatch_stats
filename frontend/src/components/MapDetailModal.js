@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getWinPercentageByHero } from '../api/client';
 import HeroStatsView from './HeroStatsView';
 
-const MapDetailModal = ({ map, playerId, onClose }) => {
+const MapDetailModal = ({ map, playerId, onClose, roleFilter = 'all' }) => {
   const [heroStats, setHeroStats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -56,7 +56,7 @@ const MapDetailModal = ({ map, playerId, onClose }) => {
 
         {!loading && !error && (
           heroStats.length > 0
-            ? <HeroStatsView heroes={heroStats} compact />
+            ? <HeroStatsView heroes={heroStats} compact defaultRoleFilter={roleFilter} mapName={map.map_name} />
             : <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
                 No hero data for this map.
               </div>

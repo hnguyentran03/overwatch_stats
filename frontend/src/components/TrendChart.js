@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getMapTrends } from '../api/client';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import MapDetailModal from './MapDetailModal';
 
 const GAME_MODE_ORDER = ['Control', 'Escort', 'Flashpoint', 'Hybrid', 'Push'];
 
@@ -10,6 +11,7 @@ const TrendChart = ({ playerId }) => {
   const [timeWindow, setTimeWindow] = useState('week');
   const [roleFilter, setRoleFilter] = useState('all');
   const [collapsedGroups, setCollapsedGroups] = useState({});
+  const [selectedMap, setSelectedMap] = useState(null);
 
   useEffect(() => {
     fetchTrends();
@@ -29,6 +31,23 @@ const TrendChart = ({ playerId }) => {
 
   const toggleGroup = (mode) => {
     setCollapsedGroups(prev => ({ ...prev, [mode]: !prev[mode] }));
+  };
+
+  const buildMapStats = (mapTrend) => {
+    const wins = mapTrend.trends.reduce((s, t) => s + t.wins, 0);
+    const losses = mapTrend.trends.reduce((s, t) => s + t.losses, 0);
+    const draws = mapTrend.trends.reduce((s, t) => s + (t.draws || 0), 0);
+    const total = wins + losses + draws;
+    return {
+      map_id: mapTrend.map_id,
+      map_name: mapTrend.map_name,
+      map_type: mapTrend.map_type,
+      wins,
+      losses,
+      draws,
+      total,
+      win_percentage: total > 0 ? ((wins / total) * 100).toFixed(2) : 0,
+    };
   };
 
   if (loading) return <div>Loading trends...</div>;
@@ -80,6 +99,14 @@ const TrendChart = ({ playerId }) => {
 
   return (
     <div className="trend-chart">
+      {selectedMap && (
+        <MapDetailModal
+          map={selectedMap}
+          playerId={playerId}
+          onClose={() => setSelectedMap(null)}
+          roleFilter={roleFilter}
+        />
+      )}
       <h2>Performance Trends Over Time</h2>
 
       <div className="controls">
@@ -161,7 +188,12 @@ const TrendChart = ({ playerId }) => {
 
                       return (
                         <div key={mapTrend.map_id} className="individual-map-trend">
-                          <h4>{mapTrend.map_name}</h4>
+                          <h4
+                            className="clickable-map-heading"
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => setSelectedMap(buildMapStats(mapTrend))}
+                            title="Click for detailed stats"
+                          >{mapTrend.map_name}</h4>
                           {trendData.length === 0 ? (
                             <p className="no-data">No match data for this map.</p>
                           ) : (

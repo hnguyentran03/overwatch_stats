@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getWinPercentageByMap, getWinPercentageByHero } from '../api/client';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import MapDetailModal from './MapDetailModal';
+import HeroDetailModal from './HeroDetailModal';
 
 const MapStats = ({ playerId }) => {
   const [mapStats, setMapStats] = useState([]);
@@ -11,6 +12,7 @@ const MapStats = ({ playerId }) => {
   const [roleFilter, setRoleFilter] = useState('all');
   const [heroFilter, setHeroFilter] = useState('all');
   const [selectedMap, setSelectedMap] = useState(null);
+  const [selectedHeroMap, setSelectedHeroMap] = useState(null);
 
   useEffect(() => {
     getWinPercentageByHero(playerId)
@@ -46,6 +48,22 @@ const MapStats = ({ playerId }) => {
   const heroOptions = roleFilter === 'all'
     ? allHeroes
     : allHeroes.filter(h => h.role === roleFilter);
+
+  const handleBarClick = async (data) => {
+    if (heroFilter !== 'all') {
+      try {
+        const result = await getWinPercentageByHero(playerId, data.map_id);
+        const hero = result.hero_stats.find(h => String(h.hero_id) === String(heroFilter));
+        if (hero) {
+          setSelectedHeroMap({ hero, mapName: data.map_name });
+          return;
+        }
+      } catch (err) {
+        console.error('Error fetching hero stats for map:', err);
+      }
+    }
+    setSelectedMap(data);
+  };
 
   if (loading) return <div>Loading map stats...</div>;
 
@@ -83,6 +101,14 @@ const MapStats = ({ playerId }) => {
           map={selectedMap}
           playerId={playerId}
           onClose={() => setSelectedMap(null)}
+          roleFilter={roleFilter}
+        />
+      )}
+      {selectedHeroMap && (
+        <HeroDetailModal
+          hero={selectedHeroMap.hero}
+          mapName={selectedHeroMap.mapName}
+          onClose={() => setSelectedHeroMap(null)}
         />
       )}
 
@@ -130,7 +156,7 @@ const MapStats = ({ playerId }) => {
             label={{ value: 'Win %', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
           />
           <Tooltip content={<WinRateTooltip />} />
-          <Bar dataKey="win_percentage" name="Win %">
+          <Bar dataKey="win_percentage" name="Win %" cursor="pointer" onClick={handleBarClick}>
             {sortedStats.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={getColor(entry.win_percentage)} />
             ))}

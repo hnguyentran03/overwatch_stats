@@ -20,8 +20,8 @@ const COLUMNS = [
 
 const roleOrder = { tank: 0, dps: 1, support: 2 };
 
-const HeroStatsView = ({ heroes, compact = false }) => {
-  const [roleFilter, setRoleFilter] = useState('all');
+const HeroStatsView = ({ heroes, compact = false, defaultRoleFilter = 'all', mapName = null }) => {
+  const [roleFilter, setRoleFilter] = useState(defaultRoleFilter);
   const [selectedHero, setSelectedHero] = useState(null);
   const [sortCol, setSortCol] = useState(null);
   const [sortDir, setSortDir] = useState('desc');
@@ -92,7 +92,7 @@ const HeroStatsView = ({ heroes, compact = false }) => {
   return (
     <>
       {selectedHero && (
-        <HeroDetailModal hero={selectedHero} onClose={() => setSelectedHero(null)} />
+        <HeroDetailModal hero={selectedHero} mapName={mapName} onClose={() => setSelectedHero(null)} />
       )}
 
       <div className="controls">
@@ -124,7 +124,7 @@ const HeroStatsView = ({ heroes, compact = false }) => {
               label={{ value: 'Win %', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
             />
             <Tooltip content={<WinRateTooltip />} />
-            <Bar dataKey="win_percentage" name="Win %">
+            <Bar dataKey="win_percentage" name="Win %" cursor="pointer" onClick={(data) => setSelectedHero(data)}>
               {sortedHeroes.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={getRoleColor(entry.role)} />
               ))}
