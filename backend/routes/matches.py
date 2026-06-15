@@ -1,9 +1,142 @@
 from flask import Blueprint, jsonify, request
-from models import Match, BannedHero, Hero
+from models import Match, BannedHero, Hero, Map, Player, MatchPlayer, OutcomeEnum, TeamEnum
 from utils.db import get_db
 from datetime import datetime
 
 matches_bp = Blueprint('matches', __name__)
+
+
+@matches_bp.route('/heroes', methods=['GET'])
+def get_heroes():
+    db = get_db()
+    session = db.get_session()
+    try:
+        heroes = session.query(Hero).order_by(Hero.role, Hero.hero_name).all()
+        return jsonify([{
+            'hero_id': h.hero_id,
+            'hero_name': h.hero_name,
+            'role': h.role.value
+        } for h in heroes]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        session.close()
+
+
+@matches_bp.route('/maps', methods=['GET'])
+def get_maps():
+    db = get_db()
+    session = db.get_session()
+    try:
+        maps = session.query(Map).order_by(Map.map_type, Map.map_name).all()
+        return jsonify([{
+            'map_id': m.map_id,
+            'map_name': m.map_name,
+            'map_type': m.map_type.value
+        } for m in maps]), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        session.close()
+
+
+@matches_bp.route('/matches', methods=['POST'])
+def create_match():
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    for field in ['date_time', 'map_id', 'final_score', 'outcome']:
+        if field not in data:
+            return jsonify({'error': f'Missing required field: {field}'}), 400
+
+    db = get_db()
+    session = db.get_session()
+    try:
+        try:
+            outcome = OutcomeEnum(data['outcome'])
+        except ValueError:
+            return jsonify({'error': 'Invalid outcome. Must be win, loss, or draw'}), 400
+
+        try:
+            date_time = datetime.fromisoformat(data['date_time'])
+        except ValueError:
+            return jsonify({'error': 'Invalid date_time format'}), 400
+
+        map_obj = session.query(Map).filter_by(map_id=data['map_id']).first()
+        if not map_obj:
+            return jsonify({'error': 'Map not found'}), 404
+
+        match = Match(
+            date_time=date_time,
+            map_id=data['map_id'],
+            final_score=data['final_score'],
+            outcome=outcome,
+            duration=float(data.get('duration', 0.0))
+        )
+        session.add(match)
+        session.flush()
+
+        for player_data in data.get('players', []):
+            battle_tag = player_data.get('battle_tag', '').strip()
+            if not battle_tag:
+                continue
+
+            player = session.query(Player).filter_by(user_id=battle_tag).first()
+            if not player:
+                player = Player(user_id=battle_tag)
+                session.add(player)
+                session.flush()
+
+            try:
+                team = TeamEnum(player_data.get('team', 'team1'))
+            except ValueError:
+                team = TeamEnum.team1
+
+            for hero_data in player_data.get('heroes', []):
+                hero_name = hero_data.get('hero_name', '').strip()
+                if not hero_name:
+                    continue
+                hero = session.query(Hero).filter_by(hero_name=hero_name).first()
+                if not hero:
+                    continue
+
+                mp = MatchPlayer(
+                    match_id=match.match_id,
+                    player_id=player.player_id,
+                    hero_id=hero.hero_id,
+                    team=team,
+                    eliminations=int(hero_data.get('eliminations', 0)),
+                    final_blows=int(hero_data.get('final_blows', 0)),
+                    assists=int(hero_data.get('assists', 0)),
+                    deaths=int(hero_data.get('deaths', 0)),
+                    damage_done=float(hero_data.get('damage_done', 0.0)),
+                    healing_done=float(hero_data.get('healing_done', 0.0)),
+                    damage_mitigated=float(hero_data.get('damage_mitigated', 0.0)),
+                    time_played=float(hero_data.get('time_played', 0.0))
+                )
+                session.add(mp)
+
+        bans_data = data.get('bans', {})
+        for team_key in ['team1', 'team2']:
+            for hero_name in bans_data.get(team_key, []):
+                hero = session.query(Hero).filter_by(hero_name=hero_name).first()
+                if hero:
+                    ban = BannedHero(
+                        match_id=match.match_id,
+                        hero_id=hero.hero_id,
+                        team=TeamEnum(team_key)
+                    )
+                    session.add(ban)
+
+        session.commit()
+        return jsonify({'match_id': match.match_id, 'message': 'Match created successfully'}), 201
+
+    except Exception as e:
+        session.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        session.close()
 
 
 @matches_bp.route('/matches', methods=['GET'])

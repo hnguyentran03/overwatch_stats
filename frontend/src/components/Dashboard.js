@@ -5,6 +5,7 @@ import MapStats from './MapStats';
 import TrendChart from './TrendChart';
 import MatchHistory from './MatchHistory';
 import MatchDetailModal from './MatchDetailModal';
+import LogMatch from './LogMatch';
 
 const Dashboard = () => {
   const [inputValue, setInputValue] = useState('PlayerOne#1234');
@@ -15,6 +16,7 @@ const Dashboard = () => {
   const [notFound, setNotFound] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedMatchId, setSelectedMatchId] = useState(null);
+  const [showLogMatch, setShowLogMatch] = useState(false);
 
   useEffect(() => {
     fetchPlayerData(searchedTag);
@@ -156,6 +158,24 @@ const Dashboard = () => {
     );
   };
 
+  if (showLogMatch) {
+    return (
+      <div className="dashboard">
+        <header className="dashboard-header">
+          <h1>Overwatch Statistics</h1>
+        </header>
+        <LogMatch
+          defaultBattleTag={searchedTag}
+          onCancel={() => setShowLogMatch(false)}
+          onSuccess={(matchId) => {
+            setShowLogMatch(false);
+            fetchPlayerData(searchedTag);
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="dashboard">
       {selectedMatchId && (
@@ -177,6 +197,9 @@ const Dashboard = () => {
             placeholder="Name#1234"
           />
           <button className="search-btn" onClick={handleSearch}>Search</button>
+          <button className="log-match-btn" onClick={() => setShowLogMatch(true)}>
+            + Log Match
+          </button>
         </div>
       </header>
 

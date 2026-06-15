@@ -1031,3 +1031,498 @@ body {
 .map-detail-modal {
   max-width: 1100px;
 }
+
+/* ── Log Match button in header ── */
+.log-match-btn {
+  padding: 8px 18px;
+  background: transparent;
+  border: 2px solid var(--accent);
+  border-radius: 5px;
+  color: var(--accent);
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.log-match-btn:hover {
+  background: var(--accent);
+  color: #000;
+}
+
+/* ── Log Match form ── */
+.log-match {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 10px 0 40px;
+}
+
+.lm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.lm-header h2 {
+  color: var(--accent);
+  font-size: 2rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.lm-cancel-btn {
+  padding: 8px 18px;
+  background: transparent;
+  border: 2px solid var(--text-muted);
+  border-radius: 5px;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.lm-cancel-btn:hover {
+  border-color: #fff;
+  color: #fff;
+}
+
+.lm-error {
+  background: rgba(244, 67, 54, 0.15);
+  border: 2px solid var(--color-loss);
+  border-radius: 8px;
+  padding: 12px 18px;
+  color: var(--color-loss);
+  margin-bottom: 20px;
+}
+
+.lm-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.lm-section {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
+  border-radius: 10px;
+  padding: 20px 24px;
+}
+
+.lm-section-title {
+  color: var(--accent);
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+}
+
+.lm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.lm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lm-field label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.lm-input, .lm-select {
+  padding: 8px 12px;
+  background: var(--bg-dark);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 5px;
+  color: #fff;
+  font-size: 0.9rem;
+  transition: border-color 0.2s;
+}
+
+.lm-input:focus, .lm-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Outcome buttons */
+.lm-outcome-btns, .lm-team-btns {
+  display: flex;
+  gap: 6px;
+}
+
+.lm-outcome-btn {
+  flex: 1;
+  padding: 7px 0;
+  border-radius: 5px;
+  border: 2px solid transparent;
+  font-size: 0.8rem;
+  font-weight: bold;
+  cursor: pointer;
+  background: rgba(255,255,255,0.07);
+  color: var(--text-muted);
+  transition: all 0.2s;
+}
+
+.lm-outcome-win.active  { background: rgba(76,175,80,0.25); border-color: var(--color-win); color: var(--color-win); }
+.lm-outcome-loss.active { background: rgba(244,67,54,0.25); border-color: var(--color-loss); color: var(--color-loss); }
+.lm-outcome-draw.active { background: rgba(255,196,0,0.2); border-color: var(--color-draw); color: var(--color-draw); }
+
+.lm-outcome-win:hover  { border-color: var(--color-win); color: var(--color-win); }
+.lm-outcome-loss:hover { border-color: var(--color-loss); color: var(--color-loss); }
+.lm-outcome-draw:hover { border-color: var(--color-draw); color: var(--color-draw); }
+
+/* Team buttons */
+.lm-team-btn {
+  flex: 1;
+  padding: 7px 0;
+  border-radius: 5px;
+  border: 2px solid transparent;
+  font-size: 0.8rem;
+  font-weight: bold;
+  cursor: pointer;
+  background: rgba(255,255,255,0.07);
+  color: var(--text-muted);
+  transition: all 0.2s;
+}
+
+.lm-team1.active { background: rgba(33,150,243,0.2); border-color: #2196F3; color: #64b5f6; }
+.lm-team2.active { background: rgba(244,67,54,0.2); border-color: #f44336; color: #ef9a9a; }
+.lm-team1:hover { border-color: #2196F3; color: #64b5f6; }
+.lm-team2:hover { border-color: #f44336; color: #ef9a9a; }
+
+/* Player section */
+.lm-player-section {
+  border-color: rgba(255,255,255,0.1);
+}
+
+.lm-player-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.lm-player-meta {
+  margin-bottom: 16px;
+}
+
+/* Hero slots */
+.lm-hero-slot {
+  background: rgba(0,0,0,0.2);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+
+.lm-hero-slot-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.lm-hero-slot-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lm-swap-role-tag {
+  font-size: 0.68rem;
+  font-weight: bold;
+  padding: 1px 6px;
+  border-radius: 3px;
+  border: 1px solid currentColor;
+  opacity: 0.8;
+  text-transform: uppercase;
+}
+
+.lm-no-roles {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-style: italic;
+  display: flex;
+  align-items: center;
+}
+
+.lm-hero-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: end;
+}
+
+.lm-field-hero {
+  flex: 0 0 175px;
+}
+
+.lm-hero-row .lm-field:not(.lm-field-hero) {
+  flex: 1 1 100px;
+  min-width: 90px;
+}
+
+.lm-remove-btn {
+  background: transparent;
+  border: 1px solid rgba(244,67,54,0.5);
+  border-radius: 4px;
+  color: var(--color-loss);
+  font-size: 0.78rem;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.lm-remove-btn:hover {
+  background: rgba(244,67,54,0.15);
+  border-color: var(--color-loss);
+}
+
+.lm-add-hero-btn {
+  background: transparent;
+  border: 1px dashed rgba(var(--accent-rgb), 0.5);
+  border-radius: 5px;
+  color: var(--accent);
+  font-size: 0.85rem;
+  padding: 7px 14px;
+  cursor: pointer;
+  margin-top: 4px;
+  transition: all 0.2s;
+}
+
+.lm-add-hero-btn:hover {
+  border-color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.08);
+}
+
+.lm-add-player-btn {
+  background: transparent;
+  border: 1px dashed rgba(255,255,255,0.25);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.lm-add-player-btn:hover {
+  border-color: #fff;
+  color: #fff;
+}
+
+/* Bans */
+.lm-bans-toggle {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  font-size: 0.95rem;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.lm-bans {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-top: 16px;
+}
+
+.lm-bans-team-title {
+  font-size: 0.85rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+}
+
+.lm-bans-team-title.lm-team1 { color: #64b5f6; }
+.lm-bans-team-title.lm-team2 { color: #ef9a9a; }
+
+.lm-ban-count {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: normal;
+  margin-left: 6px;
+}
+
+.lm-bans-role-group {
+  margin-bottom: 12px;
+}
+
+.lm-bans-role-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+  opacity: 0.8;
+}
+
+.lm-bans-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.lm-ban-chip {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.05);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.lm-ban-chip:hover {
+  border-color: rgba(255,255,255,0.4);
+  color: #fff;
+}
+
+.lm-ban-chip.lm-role-tank.selected  { background: rgba(33,150,243,0.25); border-color: var(--role-tank); color: var(--role-tank); }
+.lm-ban-chip.lm-role-dps.selected   { background: rgba(244,67,54,0.25); border-color: var(--role-dps); color: var(--role-dps); }
+.lm-ban-chip.lm-role-support.selected { background: rgba(76,175,80,0.25); border-color: var(--role-support); color: var(--role-support); }
+
+.lm-ban-chip.lm-role-tank:hover  { border-color: var(--role-tank); }
+.lm-ban-chip.lm-role-dps:hover   { border-color: var(--role-dps); }
+.lm-ban-chip.lm-role-support:hover { border-color: var(--role-support); }
+
+/* Team composition badge */
+.lm-comp-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  background: rgba(0,0,0,0.25);
+  border-radius: 6px;
+  padding: 4px 10px;
+}
+
+.lm-comp-role {
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.lm-comp-tank    { color: var(--role-tank); }
+.lm-comp-dps     { color: var(--role-dps); }
+.lm-comp-support { color: var(--role-support); }
+
+.lm-comp-total {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  margin-left: 4px;
+}
+
+.lm-comp-badge.lm-comp-error {
+  border: 1px solid rgba(244,67,54,0.5);
+  background: rgba(244,67,54,0.1);
+}
+
+/* Section with errors */
+.lm-section-invalid {
+  border-color: rgba(244,67,54,0.5) !important;
+}
+
+/* Global validation errors */
+.lm-validation-errors {
+  background: rgba(244,67,54,0.1);
+  border: 1px solid rgba(244,67,54,0.5);
+  border-radius: 8px;
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lm-validation-error {
+  font-size: 0.85rem;
+  color: var(--color-loss);
+}
+
+/* Ban role pill counts */
+.lm-ban-role-counts {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.lm-ban-role-pill {
+  font-size: 0.72rem;
+  font-weight: bold;
+  padding: 2px 8px;
+  border-radius: 3px;
+  border: 1px solid currentColor;
+  opacity: 0.7;
+}
+
+.lm-ban-count-full {
+  color: var(--color-loss) !important;
+  font-weight: bold;
+}
+
+/* Disabled ban chips */
+.lm-ban-chip.ban-disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+/* Disabled team button */
+.lm-team-btn.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Submit row */
+.lm-submit-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.lm-submit-btn {
+  padding: 12px 36px;
+  background: var(--accent);
+  border: none;
+  border-radius: 5px;
+  color: #000;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.lm-submit-btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.lm-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 900px) {
+  .lm-hero-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

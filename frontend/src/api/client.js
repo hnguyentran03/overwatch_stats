@@ -72,4 +72,19 @@ export const getBannedHeroes = async (matchId) => {
   return response.data;
 };
 
+export const getHeroes = async () => {
+  const response = await apiClient.get('/heroes');
+  return response.data;
+};
+
+export const getMaps = async () => {
+  const response = await apiClient.get('/maps');
+  return response.data;
+};
+
+export const createMatch = async (matchData) => {
+  const response = await apiClient.post('/matches', matchData);
+  return response.data;
+};
+
 export default apiClient;
