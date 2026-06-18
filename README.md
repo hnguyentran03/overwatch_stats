@@ -193,6 +193,8 @@ Click **📷 Upload Scoreboard** at the top of the Log Match form and pick a scr
 
 **Requirements & cost:** needs `ANTHROPIC_API_KEY` set on the backend process (otherwise the endpoint returns `503` and the form shows that message). Each scoreboard costs roughly 3–4¢. Higher-resolution screenshots (fullscreen / native resolution) noticeably improve hero and name accuracy.
 
+**Rate limit:** the endpoint is capped at **3 parsings per rolling 24 hours** (process-wide; resets if the backend restarts). The 4th request returns `429` with a `Retry-After` header, and the form shows when to try again. Misconfigured (`503`) attempts don't count against the cap.
+
 ## Database Configuration
 
 **SQLite (default):** `backend/overwatch_stats.db` is created automatically. To reset, delete the file and restart.

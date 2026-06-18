@@ -3,6 +3,8 @@ import os
 import sys
 import io
 
+import pytest
+
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BACKEND_DIR not in sys.path:
     sys.path.insert(0, BACKEND_DIR)
@@ -226,6 +228,15 @@ class TestBannedHeroes:
 class TestParseScoreboard:
     _PNG = b"\x89PNG\r\n\x1a\n" + b"0" * 32  # minimal non-empty fake PNG
 
+    @pytest.fixture(autouse=True)
+    def _reset_limiter(self):
+        # The daily limiter is module-level state shared across requests; reset it
+        # before each test so counts don't leak between tests.
+        from routes.matches import _scoreboard_limiter
+        _scoreboard_limiter.reset()
+        yield
+        _scoreboard_limiter.reset()
+
     def _upload(self, client, monkeypatch, fake):
         monkeypatch.setattr("routes.matches.parse_scoreboard", fake)
         return client.post(
@@ -266,3 +277,24 @@ class TestParseScoreboard:
 
         resp = self._upload(client, monkeypatch, boom)
         assert resp.status_code == 502
+
+    def test_fourth_request_in_window_is_rate_limited(self, client, monkeypatch):
+        ok = lambda *a, **k: []
+        for _ in range(3):
+            assert self._upload(client, monkeypatch, ok).status_code == 200
+        resp = self._upload(client, monkeypatch, ok)
+        assert resp.status_code == 429
+        assert "Retry-After" in resp.headers
+        assert "3 per day" in resp.get_json()["error"]
+
+    def test_config_error_does_not_consume_the_limit(self, client, monkeypatch):
+        from utils.scoreboard import ScoreboardConfigError
+
+        def no_key(*a, **k):
+            raise ScoreboardConfigError("no key")
+
+        # Three misconfigured (503) attempts must not exhaust the daily quota...
+        for _ in range(3):
+            assert self._upload(client, monkeypatch, no_key).status_code == 503
+        # ...so a real call still succeeds.
+        assert self._upload(client, monkeypatch, lambda *a, **k: []).status_code == 200

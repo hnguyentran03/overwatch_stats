@@ -2,9 +2,13 @@ from flask import Blueprint, jsonify, request, current_app
 from models import Match, BannedHero, Hero, Map, Player, MatchPlayer, OutcomeEnum, TeamEnum
 from utils.db import get_db
 from utils.scoreboard import parse_scoreboard, ScoreboardConfigError
+from utils.rate_limit import SlidingWindowLimiter
 from datetime import datetime
 
 matches_bp = Blueprint('matches', __name__)
+
+# Cap the paid scoreboard-parsing calls at 3 per rolling 24 hours (process-wide).
+_scoreboard_limiter = SlidingWindowLimiter(max_calls=3, window_seconds=24 * 60 * 60)
 
 
 @matches_bp.route('/heroes', methods=['GET'])
@@ -160,6 +164,17 @@ def parse_scoreboard_route():
     if len(image_bytes) > MAX_IMAGE_BYTES:
         return jsonify({'error': 'Image too large (max 10 MB)'}), 400
 
+    allowed, retry_after = _scoreboard_limiter.allow()
+    if not allowed:
+        hours = retry_after // 3600 + 1
+        resp = jsonify({
+            'error': f'Daily scoreboard limit reached (3 per day). '
+                     f'Try again in about {hours} hour{"s" if hours != 1 else ""}.'
+        })
+        resp.status_code = 429
+        resp.headers['Retry-After'] = str(retry_after)
+        return resp
+
     db = get_db()
     session = db.get_session()
     try:
@@ -173,6 +188,8 @@ def parse_scoreboard_route():
     try:
         players = parse_scoreboard(image_bytes, media_type, hero_names_by_role)
     except ScoreboardConfigError:
+        # No model call was made — don't count it against the daily limit.
+        _scoreboard_limiter.refund()
         return jsonify({
             'error': 'Scoreboard parsing is not configured. '
                      'Set the ANTHROPIC_API_KEY environment variable.'
