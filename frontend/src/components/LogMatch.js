@@ -152,6 +152,15 @@ const LogMatch = ({ onSuccess, onCancel }) => {
   const allCompErrors = [...getCompErrors('team1'), ...getCompErrors('team2')];
   const canSubmit = allCompErrors.length === 0;
 
+  // ── autofill review state ──
+  const didAutofill = autofilledRows.size > 0;
+  // True for a primary hero slot that the autofill left empty (hero not recognized).
+  const heroNeedsPick = (pi, hi, heroSlot) =>
+    hi === 0 && autofilledRows.has(pi) && !heroSlot.hero_name;
+  const autofillMissingHeroes = form.players.filter(
+    (p, i) => autofilledRows.has(i) && !p.heroes[0]?.hero_name
+  ).length;
+
   // ── form helpers ──
 
   const setMatchField = (field, value) =>
@@ -400,6 +409,22 @@ const LogMatch = ({ onSuccess, onCancel }) => {
         </div>
       )}
 
+      {didAutofill && (
+        <div className="lm-autofill-warning">
+          <div className="lm-autofill-warning-title">⚠ Autofill is incomplete — review before saving</div>
+          {autofillMissingHeroes > 0 && (
+            <div className="lm-autofill-warning-line lm-autofill-warning-critical">
+              {autofillMissingHeroes} hero{autofillMissingHeroes > 1 ? 'es' : ''} could not be identified —
+              pick {autofillMissingHeroes > 1 ? 'them' : 'it'} in the highlighted slot{autofillMissingHeroes > 1 ? 's' : ''} below.
+            </div>
+          )}
+          <div className="lm-autofill-warning-line">
+            The scoreboard doesn't include <strong>final blows</strong>, <strong>time played</strong>,
+            or battle-tag <strong>#IDs</strong> (e.g. <code>#1234</code>) — fill these in yourself.
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="lm-form">
 
         {/* ── Scoreboard Upload ── */}
@@ -504,10 +529,13 @@ const LogMatch = ({ onSuccess, onCancel }) => {
           const hasPrimaryHero = !!player.heroes[0]?.hero_name;
 
           return (
-            <section key={pi} className={`lm-section lm-player-section${compErrors.length ? ' lm-section-invalid' : ''}${autofilledRows.has(pi) ? ' lm-autofilled' : ''}`}>
+            <section key={pi} className={`lm-section lm-player-section${compErrors.length ? ' lm-section-invalid' : ''}${autofilledRows.has(pi) ? ' lm-autofilled' : ''}${autofilledRows.has(pi) && !player.heroes[0]?.hero_name ? ' lm-autofilled-incomplete' : ''}`}>
               <div className="lm-player-header">
                 <h3 className="lm-section-title">
                   {`Player ${pi + 1}`}
+                  {autofilledRows.has(pi) && !player.heroes[0]?.hero_name && (
+                    <span className="lm-row-incomplete-badge">needs hero</span>
+                  )}
                 </h3>
                 <TeamCompBadge team={player.team} />
                 {pi > 0 && (
@@ -572,8 +600,8 @@ const LogMatch = ({ onSuccess, onCancel }) => {
                   </div>
 
                   <div className="lm-hero-row">
-                    <div className="lm-field lm-field-hero">
-                      <label>Hero</label>
+                    <div className={`lm-field lm-field-hero${heroNeedsPick(pi, hi, heroSlot) ? ' lm-field-needs-hero' : ''}`}>
+                      <label>Hero{heroNeedsPick(pi, hi, heroSlot) ? ' ⚠' : ''}</label>
                       {hi === 0 ? (
                         <HeroSelect
                           value={heroSlot.hero_name}
@@ -586,6 +614,9 @@ const LogMatch = ({ onSuccess, onCancel }) => {
                           onChange={v => setHeroField(pi, hi, 'hero_name', v)}
                           requiredRole={primaryRole}
                         />
+                      )}
+                      {heroNeedsPick(pi, hi, heroSlot) && (
+                        <span className="lm-needs-hero-note">Not recognized — pick the hero</span>
                       )}
                     </div>
                     <div className="lm-field">

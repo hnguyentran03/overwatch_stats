@@ -1592,3 +1592,69 @@ body {
   font-size: 0.85rem;
   color: #888;
 }
+
+/* ── Autofill incompleteness warnings ── */
+.lm-autofill-warning {
+  margin: 0 0 16px;
+  padding: 14px 18px;
+  background: rgba(242, 153, 74, 0.12);
+  border: 2px solid #f2994a;
+  border-radius: 8px;
+}
+
+.lm-autofill-warning-title {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #f2994a;
+  margin-bottom: 6px;
+}
+
+.lm-autofill-warning-line {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-top: 4px;
+}
+
+.lm-autofill-warning-critical {
+  font-weight: 600;
+  color: #eb5757;
+}
+
+/* A whole player row whose hero could not be identified */
+.lm-autofilled-incomplete {
+  box-shadow: inset 4px 0 0 #eb5757;
+  border-color: #eb5757 !important;
+}
+
+.lm-row-incomplete-badge {
+  margin-left: 10px;
+  padding: 2px 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #fff;
+  background: #eb5757;
+  border-radius: 10px;
+  vertical-align: middle;
+}
+
+/* The hero select that still needs a manual pick */
+.lm-field-needs-hero .lm-select,
+.lm-field-needs-hero .lm-no-roles {
+  border: 2px solid #eb5757;
+  border-radius: 6px;
+}
+
+.lm-field-needs-hero label {
+  color: #eb5757;
+  font-weight: 700;
+}
+
+.lm-needs-hero-note {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #eb5757;
+}

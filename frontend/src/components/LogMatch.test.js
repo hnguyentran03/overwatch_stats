@@ -133,6 +133,25 @@ describe('LogMatch', () => {
     expect(screen.getByDisplayValue('12')).toBeInTheDocument();
   });
 
+  test('prominently flags an unidentified hero after autofill', async () => {
+    parseScoreboard.mockResolvedValue([
+      { team: 'team1', battle_tag: 'AAA', hero_name: 'Reinhardt',
+        eliminations: 5, assists: 1, deaths: 2, damage_done: 1, healing_done: 0, damage_mitigated: 1 },
+      { team: 'team2', battle_tag: 'BBB', hero_name: 'NotARealHero',
+        eliminations: 9, assists: 2, deaths: 3, damage_done: 2, healing_done: 0, damage_mitigated: 0 },
+    ]);
+    await renderLogMatch();
+
+    const file = new File(['x'], 'scoreboard.png', { type: 'image/png' });
+    fireEvent.change(document.querySelector('input[type="file"]'), { target: { files: [file] } });
+
+    // Top banner + per-row flags for the hero that couldn't be identified.
+    await waitFor(() => screen.getByText(/Autofill is incomplete/i));
+    expect(screen.getByText(/could not be identified/i)).toBeInTheDocument();
+    expect(screen.getByText('needs hero')).toBeInTheDocument();
+    expect(screen.getByText('Not recognized — pick the hero')).toBeInTheDocument();
+  });
+
   test('shows a non-closable reading modal while parsing, removed when done', async () => {
     let resolveParse;
     parseScoreboard.mockReturnValue(new Promise((resolve) => { resolveParse = resolve; }));
