@@ -17,6 +17,7 @@ import {
   getMapTrends,
   getMatchDetails,
   createMatch,
+  parseScoreboard,
 } from './client';
 
 // All exported helpers share the single mocked instance.
@@ -91,5 +92,21 @@ describe('return values', () => {
     const result = await createMatch(payload);
     expect(instance.post).toHaveBeenCalledWith('/matches', payload);
     expect(result).toEqual({ match_id: 7 });
+  });
+});
+
+describe('parseScoreboard', () => {
+  test('posts the image as multipart and returns players', async () => {
+    const players = [{ team: 'team1', battle_tag: 'IMTHETROOP', hero_name: 'Reinhardt' }];
+    instance.post.mockResolvedValue({ data: { players } });
+    const file = new File(['x'], 'scoreboard.png', { type: 'image/png' });
+
+    const result = await parseScoreboard(file);
+
+    expect(result).toEqual(players);
+    const [url, body, config] = instance.post.mock.calls[0];
+    expect(url).toBe('/matches/parse_scoreboard');
+    expect(body).toBeInstanceOf(FormData);
+    expect(config.headers['Content-Type']).toBe('multipart/form-data');
   });
 });

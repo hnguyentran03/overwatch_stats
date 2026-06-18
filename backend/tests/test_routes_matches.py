@@ -1,6 +1,7 @@
 """Integration tests for the matches blueprint."""
 import os
 import sys
+import io
 
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BACKEND_DIR not in sys.path:
@@ -220,3 +221,48 @@ class TestBannedHeroes:
         assert len(body["team1_bans"]) == 1
         assert body["team1_bans"][0]["hero_name"] == "Sombra"
         assert body["team2_bans"] == []
+
+
+class TestParseScoreboard:
+    _PNG = b"\x89PNG\r\n\x1a\n" + b"0" * 32  # minimal non-empty fake PNG
+
+    def _upload(self, client, monkeypatch, fake):
+        monkeypatch.setattr("routes.matches.parse_scoreboard", fake)
+        return client.post(
+            "/api/matches/parse_scoreboard",
+            data={"image": (io.BytesIO(self._PNG), "scoreboard.png")},
+            content_type="multipart/form-data",
+        )
+
+    def test_returns_parsed_players(self, client, monkeypatch):
+        players = [{
+            "team": "team1", "battle_tag": "IMTHETROOP", "hero_name": "Reinhardt",
+            "eliminations": 12, "assists": 2, "deaths": 9,
+            "damage_done": 5953, "healing_done": 4047, "damage_mitigated": 760,
+        }]
+        resp = self._upload(client, monkeypatch, lambda *a, **k: players)
+        assert resp.status_code == 200
+        assert resp.get_json() == {"players": players}
+
+    def test_missing_image_returns_400(self, client):
+        resp = client.post(
+            "/api/matches/parse_scoreboard",
+            data={}, content_type="multipart/form-data",
+        )
+        assert resp.status_code == 400
+
+    def test_missing_api_key_returns_503(self, client, monkeypatch):
+        from utils.scoreboard import ScoreboardConfigError
+
+        def boom(*a, **k):
+            raise ScoreboardConfigError("no key")
+
+        resp = self._upload(client, monkeypatch, boom)
+        assert resp.status_code == 503
+
+    def test_model_failure_returns_502(self, client, monkeypatch):
+        def boom(*a, **k):
+            raise RuntimeError("model exploded")
+
+        resp = self._upload(client, monkeypatch, boom)
+        assert resp.status_code == 502

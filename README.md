@@ -5,6 +5,7 @@ A web application for tracking and analyzing Overwatch competitive match statist
 ## Features
 
 - **Match Logging**: Manually enter full match data — map, outcome, score, duration, all 10 players, hero swaps, and hero bans. Enforces 5v5 composition (1 Tank / 2 Damage / 2 Support per team).
+- **Scoreboard Autofill**: Upload a screenshot of the in-game end-of-match scoreboard and the entry form fills itself in — all 10 players' heroes and stats are read by a Claude vision model. Requires an `ANTHROPIC_API_KEY` (see [Scoreboard Autofill](#scoreboard-autofill)).
 - **Player Dashboard**: Overview of total matches, overall win rate, and per-role win rates.
 - **Hero Analytics**: Win percentages per hero with detailed performance stats (eliminations, deaths, damage, healing, per-10-min rates).
 - **Map Analytics**: Identify your weakest maps and track win rates across all map types (Hybrid, Control, Escort, Push, Flashpoint).
@@ -18,6 +19,8 @@ A web application for tracking and analyzing Overwatch competitive match statist
 - **Python 3.8+** / **Flask** — REST API
 - **SQLAlchemy** — ORM
 - **SQLite** (default) / **PostgreSQL** (production)
+- **anthropic** — Claude vision API for scoreboard parsing
+- **Pillow** — builds the hero-portrait reference image (asset script only)
 
 ### Frontend
 - **React 18**
@@ -34,12 +37,17 @@ overwatch_stats/
 │   ├── config.py              # Environment config
 │   ├── seed_sample_data.py    # Generates 50 sample matches
 │   ├── requirements.txt
+│   ├── assets/
+│   │   └── hero_reference.png # Labeled hero-portrait grid (built by the script below)
+│   ├── scripts/
+│   │   └── build_hero_reference.py  # Downloads portraits + builds the reference grid
 │   ├── routes/
-│   │   ├── matches.py         # Match CRUD + GET /api/heroes, GET /api/maps
+│   │   ├── matches.py         # Match CRUD + GET /api/heroes, GET /api/maps, POST /api/matches/parse_scoreboard
 │   │   ├── players.py         # Player stats endpoints
 │   │   └── stats.py           # Win % and trend endpoints
 │   └── utils/
 │       ├── db.py              # Database class + hero/map seed data
+│       ├── scoreboard.py      # Claude vision scoreboard parser
 │       └── calculations.py    # Stat aggregation functions
 └── frontend/
     └── src/
@@ -80,6 +88,16 @@ Optionally seed 50 sample matches:
 python seed_sample_data.py
 ```
 
+**Scoreboard Autofill (optional)** — to enable reading scoreboards from screenshots, set a Claude API key in the **same shell** that runs `python app.py`:
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...   # required only for /api/matches/parse_scoreboard
+```
+Without it the endpoint returns `503` and manual entry still works. The repo ships
+`backend/assets/hero_reference.png`; regenerate it after changing the hero roster:
+```bash
+python scripts/build_hero_reference.py
+```
+
 ### Frontend
 
 ```bash
@@ -99,6 +117,7 @@ Both processes must run simultaneously.
 ### Matches
 - `GET /api/matches` — List matches (`start_date`, `end_date` query params)
 - `POST /api/matches` — Create a match (see Match Logging below)
+- `POST /api/matches/parse_scoreboard` — Parse a scoreboard screenshot (multipart `image`); returns `{ "players": [...] }` (see [Scoreboard Autofill](#scoreboard-autofill))
 - `GET /api/matches/{match_id}/details` — Full match details with player stats and bans
 - `GET /api/matches/{match_id}/banned_heroes` — Bans for a match
 
@@ -162,6 +181,18 @@ The **+ Log Match** button in the dashboard header opens the match entry form. R
 
 New players (by `battle_tag`) are created automatically.
 
+## Scoreboard Autofill
+
+Click **📷 Upload Scoreboard** at the top of the Log Match form and pick a screenshot of the in-game end-of-match scoreboard. A blocking "Reading scoreboard…" dialog shows while the image is processed, then the form autofills.
+
+**How it works:** the image is sent to `POST /api/matches/parse_scoreboard`, which forwards it to a Claude vision model (`claude-opus-4-8`) along with a labeled grid of every hero's portrait (`backend/assets/hero_reference.png`). The model matches each scoreboard portrait against the reference grid and reads the stat columns, returning structured JSON. Blue/top team → Team 1, red/bottom → Team 2.
+
+**What it fills:** hero plus eliminations, assists, deaths, damage, healing, and mitigation for all 10 players. Autofilled rows are highlighted.
+
+**What you still enter:** map, outcome, final score, duration, final blows, time played, and the `#1234` discriminator on battle tags (scoreboards show display names only). Heroes the model can't confidently identify are left blank for you to pick; the 5v5 validation flags anything off.
+
+**Requirements & cost:** needs `ANTHROPIC_API_KEY` set on the backend process (otherwise the endpoint returns `503` and the form shows that message). Each scoreboard costs roughly 3–4¢. Higher-resolution screenshots (fullscreen / native resolution) noticeably improve hero and name accuracy.
+
 ## Database Configuration
 
 **SQLite (default):** `backend/overwatch_stats.db` is created automatically. To reset, delete the file and restart.
@@ -183,3 +214,5 @@ Edit `seed_data()` in `backend/utils/db.py`. The function only runs when the dat
 | Frontend won't start | `npm install`; check port 3000 |
 | CORS errors | Ensure backend is running; check `CORS_ORIGINS` in `config.py` |
 | Database errors | Delete `overwatch_stats.db` and restart the backend |
+| Scoreboard upload says "not configured" (503) | `export ANTHROPIC_API_KEY=...` in the **same shell** that runs `python app.py`, then restart the backend |
+| Scoreboard heroes/names inaccurate | Upload a higher-resolution (fullscreen / native-res) screenshot; rerun `python scripts/build_hero_reference.py` if the roster changed |

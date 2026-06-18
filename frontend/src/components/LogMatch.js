@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { getHeroes, getMaps, createMatch } from '../api/client';
+import { getHeroes, getMaps, createMatch, parseScoreboard } from '../api/client';
 
 const EMPTY_HERO_SLOT = {
   hero_name: '',
@@ -30,13 +30,15 @@ const ROLE_LABEL  = { tank: 'T', dps: 'D', support: 'S' };
 const MAX_BAN_TOTAL = 2;
 const MAX_BAN_ROLE  = 2;
 
-const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }) => {
+const LogMatch = ({ onSuccess, onCancel }) => {
   const [heroes, setHeroes] = useState([]);
   const [maps, setMaps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [showBans, setShowBans] = useState(false);
+  const [parsing, setParsing] = useState(false);
+  const [autofilledRows, setAutofilledRows] = useState(() => new Set());
 
   const [form, setForm] = useState({
     date_time: now(),
@@ -44,7 +46,7 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }) => {
     outcome: 'win',
     final_score: '',
     duration: '',
-    players: [{ ...EMPTY_PLAYER, battle_tag: defaultBattleTag || '' }],
+    players: [{ ...EMPTY_PLAYER }],
     bans: { team1: [], team2: [] },
   });
 
@@ -231,6 +233,41 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }) => {
 
   // ── submit ──
 
+  const handleScoreboardUpload = async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';            // allow re-uploading the same file
+    if (!file) return;
+
+    setError(null);
+    setParsing(true);
+    try {
+      const parsed = await parseScoreboard(file);
+      const players = parsed.map((p) => ({
+        battle_tag: p.battle_tag,
+        team: p.team === 'team2' ? 'team2' : 'team1',
+        heroes: [{
+          ...EMPTY_HERO_SLOT,
+          hero_name: heroRoleMap[p.hero_name] ? p.hero_name : '',
+          eliminations: String(p.eliminations ?? ''),
+          assists: String(p.assists ?? ''),
+          deaths: String(p.deaths ?? ''),
+          damage_done: String(p.damage_done ?? ''),
+          healing_done: String(p.healing_done ?? ''),
+          damage_mitigated: String(p.damage_mitigated ?? ''),
+        }],
+      }));
+      setForm((f) => ({ ...f, players }));
+      setAutofilledRows(new Set(players.map((_, i) => i)));
+    } catch (err) {
+      setError(
+        err.response?.data?.error ||
+        'Could not read that scoreboard. Try another screenshot or enter stats manually.'
+      );
+    } finally {
+      setParsing(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!canSubmit) return;
@@ -280,9 +317,16 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }) => {
   // availableRoles: only show these role groups (for primary hero)
   // requiredRole: only show this one role (for swap heroes)
   const HeroSelect = ({ value, onChange, availableRoles = null, requiredRole = null }) => {
-    const roles = requiredRole
+    const baseRoles = requiredRole
       ? [requiredRole]
       : (availableRoles || ['tank', 'dps', 'support']);
+    // Always include the currently-selected hero's role, so an autofilled or
+    // already-chosen hero never renders as blank when its role slot reads as
+    // "full" (e.g. after a scoreboard autofill fills every role).
+    const valueRole = heroRoleMap[value];
+    const roles = valueRole && !baseRoles.includes(valueRole)
+      ? [...baseRoles, valueRole]
+      : baseRoles;
 
     if (roles.length === 0) {
       return (
@@ -331,6 +375,16 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }) => {
 
   return (
     <div className="log-match">
+      {parsing && (
+        <div className="modal-backdrop lm-parsing-backdrop" role="dialog" aria-modal="true" aria-label="Reading scoreboard">
+          <div className="modal-content lm-parsing-modal">
+            <div className="lm-parsing-spinner" />
+            <p className="lm-parsing-text">Reading scoreboard…</p>
+            <p className="lm-parsing-sub">This can take a few seconds. Please wait.</p>
+          </div>
+        </div>
+      )}
+
       <div className="lm-header">
         <h2>Log Match</h2>
         <button className="lm-cancel-btn" onClick={onCancel} type="button">
@@ -347,6 +401,24 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }) => {
       )}
 
       <form onSubmit={handleSubmit} className="lm-form">
+
+        {/* ── Scoreboard Upload ── */}
+        <section className="lm-section lm-scoreboard-upload">
+          <label className="lm-scoreboard-btn">
+            {parsing ? 'Reading scoreboard…' : '📷 Upload Scoreboard'}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleScoreboardUpload}
+              disabled={parsing}
+              style={{ display: 'none' }}
+            />
+          </label>
+          <span className="lm-scoreboard-hint">
+            Autofills heroes and stats for both teams. Review highlighted rows —
+            final blows, time played, and battle-tag IDs (#1234) still need you.
+          </span>
+        </section>
 
         {/* ── Match Info ── */}
         <section className="lm-section">
@@ -432,10 +504,10 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }) => {
           const hasPrimaryHero = !!player.heroes[0]?.hero_name;
 
           return (
-            <section key={pi} className={`lm-section lm-player-section${compErrors.length ? ' lm-section-invalid' : ''}`}>
+            <section key={pi} className={`lm-section lm-player-section${compErrors.length ? ' lm-section-invalid' : ''}${autofilledRows.has(pi) ? ' lm-autofilled' : ''}`}>
               <div className="lm-player-header">
                 <h3 className="lm-section-title">
-                  {pi === 0 ? 'Your Stats' : `Player ${pi + 1}`}
+                  {`Player ${pi + 1}`}
                 </h3>
                 <TeamCompBadge team={player.team} />
                 {pi > 0 && (

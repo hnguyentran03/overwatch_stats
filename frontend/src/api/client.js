@@ -87,4 +87,13 @@ export const createMatch = async (matchData) => {
   return response.data;
 };
 
+export const parseScoreboard = async (file) => {
+  const formData = new FormData();
+  formData.append('image', file);
+  const response = await apiClient.post('/matches/parse_scoreboard', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data.players;
+};
+
 export default apiClient;
