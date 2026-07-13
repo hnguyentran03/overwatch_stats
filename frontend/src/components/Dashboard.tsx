@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getPlayerStats, getPlayerMatchOutcomes } from '../api/client';
+import type { PlayerStats, MatchOutcome } from '../types';
 import HeroStats from './HeroStats';
 import MapStats from './MapStats';
 import TrendChart from './TrendChart';
@@ -8,21 +9,21 @@ import MatchDetailModal from './MatchDetailModal';
 import LogMatch from './LogMatch';
 
 const Dashboard = () => {
-  const [inputValue, setInputValue] = useState('PlayerOne#1234');
-  const [searchedTag, setSearchedTag] = useState('PlayerOne#1234');
-  const [playerStats, setPlayerStats] = useState(null);
-  const [matchOutcomes, setMatchOutcomes] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
-  const [selectedMatchId, setSelectedMatchId] = useState(null);
-  const [showLogMatch, setShowLogMatch] = useState(false);
+  const [inputValue, setInputValue] = useState<string>('PlayerOne#1234');
+  const [searchedTag, setSearchedTag] = useState<string>('PlayerOne#1234');
+  const [playerStats, setPlayerStats] = useState<PlayerStats | null>(null);
+  const [matchOutcomes, setMatchOutcomes] = useState<MatchOutcome[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [notFound, setNotFound] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<string>('overview');
+  const [selectedMatchId, setSelectedMatchId] = useState<number | null>(null);
+  const [showLogMatch, setShowLogMatch] = useState<boolean>(false);
 
   useEffect(() => {
     fetchPlayerData(searchedTag);
   }, [searchedTag]);
 
-  const fetchPlayerData = async (tag) => {
+  const fetchPlayerData = async (tag: string) => {
     setLoading(true);
     setNotFound(false);
     setPlayerStats(null);
@@ -33,7 +34,7 @@ const Dashboard = () => {
       ]);
       setPlayerStats(stats);
       setMatchOutcomes(outcomes.matches);
-    } catch (err) {
+    } catch (err: any) {
       if (err.response?.status === 404) {
         setNotFound(true);
       }
@@ -52,7 +53,7 @@ const Dashboard = () => {
     }
   };
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') handleSearch();
   };
 
@@ -167,7 +168,7 @@ const Dashboard = () => {
         <LogMatch
           defaultBattleTag={searchedTag}
           onCancel={() => setShowLogMatch(false)}
-          onSuccess={(matchId) => {
+          onSuccess={(matchId: number) => {
             setShowLogMatch(false);
             fetchPlayerData(searchedTag);
           }}
