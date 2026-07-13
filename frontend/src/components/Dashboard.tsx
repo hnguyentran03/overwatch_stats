@@ -15,7 +15,7 @@ const Dashboard = () => {
   const [matchOutcomes, setMatchOutcomes] = useState<MatchOutcome[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [notFound, setNotFound] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<string>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'heroes' | 'maps' | 'trends'>('overview');
   const [selectedMatchId, setSelectedMatchId] = useState<number | null>(null);
   const [showLogMatch, setShowLogMatch] = useState<boolean>(false);
 

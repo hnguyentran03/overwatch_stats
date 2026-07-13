@@ -50,13 +50,14 @@ const HeroStatsView = ({ heroes, compact = false, defaultRoleFilter = 'all', map
   const sortedHeroes = sortCol
     ? [...filtered].sort((a, b) => {
         const col = COLUMNS.find(c => c.key === sortCol);
+        if (!col) return 0;
         let aVal: string | number = a[sortCol];
         let bVal: string | number = b[sortCol];
         if (sortCol === 'role') {
           aVal = roleOrder[aVal] ?? 99;
           bVal = roleOrder[bVal] ?? 99;
         }
-        const cmp = col!.numeric ? (aVal as number) - (bVal as number) : String(aVal).localeCompare(String(bVal));
+        const cmp = col.numeric ? (aVal as number) - (bVal as number) : String(aVal).localeCompare(String(bVal));
         return sortDir === 'asc' ? cmp : -cmp;
       })
     : filtered;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { getHeroes, getMaps, createMatch } from '../api/client';
-import type { Hero, GameMap, Role, Team, MapType, CreateMatchPayload } from '../types';
+import type { Hero, GameMap, Role, Team, CreateMatchPayload } from '../types';
 
 interface HeroSlotForm {
   hero_name: string;

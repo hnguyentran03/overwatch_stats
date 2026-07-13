@@ -66,8 +66,8 @@ const TrendChart = ({ playerId }: TrendChartProps) => {
   trends.forEach(mapTrend => {
     mapTrend.trends.forEach(period => {
       const key = period.period_start;
-      if (!periodMap.has(key)) periodMap.set(key, { wins: 0, losses: 0 });
-      const data = periodMap.get(key)!;
+      let data = periodMap.get(key);
+      if (!data) { data = { wins: 0, losses: 0 }; periodMap.set(key, data); }
       data.wins += period.wins;
       data.losses += period.losses;
     });
