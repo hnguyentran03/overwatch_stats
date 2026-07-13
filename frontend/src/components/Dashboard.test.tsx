@@ -11,7 +11,7 @@ jest.mock('./HeroStats', () => () => <div>HeroStats Component</div>);
 jest.mock('./MapStats', () => () => <div>MapStats Component</div>);
 jest.mock('./TrendChart', () => () => <div>TrendChart Component</div>);
 jest.mock('./MatchDetailModal', () => () => <div>MatchDetailModal</div>);
-jest.mock('./LogMatch', () => ({ onCancel }) => (
+jest.mock('./LogMatch', () => ({ onCancel }: { onCancel: () => void }) => (
   <div>
     LogMatch Form
     <button onClick={onCancel}>back</button>
@@ -41,10 +41,10 @@ const statsFixture = {
 const outcomesFixture = { matches: [] };
 
 beforeEach(() => {
-  getPlayerStats.mockReset();
-  getPlayerMatchOutcomes.mockReset();
-  getPlayerStats.mockResolvedValue(statsFixture);
-  getPlayerMatchOutcomes.mockResolvedValue(outcomesFixture);
+  (getPlayerStats as jest.Mock).mockReset();
+  (getPlayerMatchOutcomes as jest.Mock).mockReset();
+  (getPlayerStats as jest.Mock).mockResolvedValue(statsFixture);
+  (getPlayerMatchOutcomes as jest.Mock).mockResolvedValue(outcomesFixture);
 });
 
 describe('Dashboard', () => {
@@ -70,8 +70,8 @@ describe('Dashboard', () => {
   test('shows not found message on 404', async () => {
     // The component logs the error via console.error on failure; silence it here.
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    getPlayerStats.mockRejectedValue({ response: { status: 404 } });
-    getPlayerMatchOutcomes.mockRejectedValue({ response: { status: 404 } });
+    (getPlayerStats as jest.Mock).mockRejectedValue({ response: { status: 404 } });
+    (getPlayerMatchOutcomes as jest.Mock).mockRejectedValue({ response: { status: 404 } });
     render(<Dashboard />);
     await waitFor(() =>
       expect(screen.getByText(/No player found for/)).toBeInTheDocument()

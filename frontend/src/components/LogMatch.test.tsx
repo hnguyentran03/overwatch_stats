@@ -20,19 +20,19 @@ const MAPS = [
 ];
 
 beforeEach(() => {
-  getHeroes.mockReset();
-  getMaps.mockReset();
-  createMatch.mockReset();
-  parseScoreboard.mockReset();
-  getHeroes.mockResolvedValue(HEROES);
-  getMaps.mockResolvedValue(MAPS);
-  createMatch.mockResolvedValue({ match_id: 1 });
+  (getHeroes as jest.Mock).mockReset();
+  (getMaps as jest.Mock).mockReset();
+  (createMatch as jest.Mock).mockReset();
+  (parseScoreboard as jest.Mock).mockReset();
+  (getHeroes as jest.Mock).mockResolvedValue(HEROES);
+  (getMaps as jest.Mock).mockResolvedValue(MAPS);
+  (createMatch as jest.Mock).mockResolvedValue({ match_id: 1 });
 });
 
-const renderLogMatch = async (props = {}) => {
+const renderLogMatch = async () => {
   const onSuccess = jest.fn();
   const onCancel = jest.fn();
-  render(<LogMatch onSuccess={onSuccess} onCancel={onCancel} {...props} />);
+  render(<LogMatch onSuccess={onSuccess} onCancel={onCancel} />);
   await waitFor(() => screen.getByRole('heading', { name: 'Log Match' }));
   return { onSuccess, onCancel };
 };
@@ -104,8 +104,8 @@ describe('LogMatch', () => {
   });
 
   test('shows error when heroes/maps fail to load', async () => {
-    getHeroes.mockRejectedValue(new Error('boom'));
-    getMaps.mockRejectedValue(new Error('boom'));
+    (getHeroes as jest.Mock).mockRejectedValue(new Error('boom'));
+    (getMaps as jest.Mock).mockRejectedValue(new Error('boom'));
     render(<LogMatch onSuccess={jest.fn()} onCancel={jest.fn()} />);
     await waitFor(() =>
       expect(screen.getByText('Failed to load heroes/maps.')).toBeInTheDocument()
@@ -113,7 +113,7 @@ describe('LogMatch', () => {
   });
 
   test('uploading a scoreboard autofills all players', async () => {
-    parseScoreboard.mockResolvedValue([
+    (parseScoreboard as jest.Mock).mockResolvedValue([
       { team: 'team1', battle_tag: 'IMTHETROOP', hero_name: 'Reinhardt',
         eliminations: 12, assists: 2, deaths: 9,
         damage_done: 5953, healing_done: 4047, damage_mitigated: 760 },
@@ -124,7 +124,7 @@ describe('LogMatch', () => {
     await renderLogMatch();
 
     const file = new File(['x'], 'scoreboard.png', { type: 'image/png' });
-    const input = document.querySelector('input[type="file"]');
+    const input = document.querySelector('input[type="file"]')!;
     fireEvent.change(input, { target: { files: [file] } });
 
     await waitFor(() => screen.getByDisplayValue('IMTHETROOP'));
@@ -134,7 +134,7 @@ describe('LogMatch', () => {
   });
 
   test('prominently flags an unidentified hero after autofill', async () => {
-    parseScoreboard.mockResolvedValue([
+    (parseScoreboard as jest.Mock).mockResolvedValue([
       { team: 'team1', battle_tag: 'AAA', hero_name: 'Reinhardt',
         eliminations: 5, assists: 1, deaths: 2, damage_done: 1, healing_done: 0, damage_mitigated: 1 },
       { team: 'team2', battle_tag: 'BBB', hero_name: 'NotARealHero',
@@ -143,7 +143,7 @@ describe('LogMatch', () => {
     await renderLogMatch();
 
     const file = new File(['x'], 'scoreboard.png', { type: 'image/png' });
-    fireEvent.change(document.querySelector('input[type="file"]'), { target: { files: [file] } });
+    fireEvent.change(document.querySelector('input[type="file"]')!, { target: { files: [file] } });
 
     // Top banner + per-row flags for the hero that couldn't be identified.
     await waitFor(() => screen.getByText(/Autofill is incomplete/i));
@@ -153,12 +153,12 @@ describe('LogMatch', () => {
   });
 
   test('shows a non-closable reading modal while parsing, removed when done', async () => {
-    let resolveParse;
-    parseScoreboard.mockReturnValue(new Promise((resolve) => { resolveParse = resolve; }));
+    let resolveParse!: (value: unknown) => void;
+    (parseScoreboard as jest.Mock).mockReturnValue(new Promise((resolve) => { resolveParse = resolve; }));
     await renderLogMatch();
 
     const file = new File(['x'], 'scoreboard.png', { type: 'image/png' });
-    const input = document.querySelector('input[type="file"]');
+    const input = document.querySelector('input[type="file"]')!;
     fireEvent.change(input, { target: { files: [file] } });
 
     // Modal is visible and offers no way to dismiss it.
@@ -173,13 +173,13 @@ describe('LogMatch', () => {
   });
 
   test('surfaces the backend error message when scoreboard parsing fails', async () => {
-    parseScoreboard.mockRejectedValue({
+    (parseScoreboard as jest.Mock).mockRejectedValue({
       response: { data: { error: 'Scoreboard parsing is not configured. Set the ANTHROPIC_API_KEY environment variable.' } },
     });
     await renderLogMatch();
 
     const file = new File(['x'], 'scoreboard.png', { type: 'image/png' });
-    const input = document.querySelector('input[type="file"]');
+    const input = document.querySelector('input[type="file"]')!;
     fireEvent.change(input, { target: { files: [file] } });
 
     await waitFor(() => screen.getByText(/not configured/i));
