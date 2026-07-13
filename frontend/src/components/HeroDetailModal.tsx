@@ -1,37 +1,46 @@
 import React, { useEffect } from 'react';
+import type { HeroStat } from '../types';
 
-const Stat = ({ label, value }) => (
+interface StatProps { label: string; value: React.ReactNode; }
+interface StatGroupProps { title: string; children: React.ReactNode; }
+interface HeroDetailModalProps {
+  hero: HeroStat;
+  onClose: () => void;
+  mapName?: string | null;
+}
+
+const Stat = ({ label, value }: StatProps) => (
   <div className="hero-stat-item">
     <span className="hero-stat-label">{label}</span>
     <span className="hero-stat-value">{value}</span>
   </div>
 );
 
-const StatGroup = ({ title, children }) => (
+const StatGroup = ({ title, children }: StatGroupProps) => (
   <div className="hero-stat-group">
     <h4 className="hero-stat-group-title">{title}</h4>
     <div className="hero-stat-grid">{children}</div>
   </div>
 );
 
-const HeroDetailModal = ({ hero, onClose, mapName = null }) => {
+const HeroDetailModal = ({ hero, onClose, mapName = null }: HeroDetailModalProps) => {
   useEffect(() => {
-    const handleKey = (e) => { if (e.key === 'Escape') onClose(); };
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, [onClose]);
 
-  const handleBackdropClick = (e) => {
+  const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) onClose();
   };
 
-  const fmt = (n) => Math.round(n).toLocaleString();
-  const formatTime = (minutes) => {
+  const fmt = (n: number) => Math.round(n).toLocaleString();
+  const formatTime = (minutes: number) => {
     if (minutes < 100) return `${Math.round(minutes)} min`;
     const hrs = Math.round(minutes / 60);
     return `${hrs} ${hrs === 1 ? 'hr' : 'hrs'}`;
   };
-  const fmtDec = (n) => Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtDec = (n: number) => Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
     <div className="modal-backdrop" onClick={handleBackdropClick}>

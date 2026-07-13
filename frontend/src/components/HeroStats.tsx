@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { getWinPercentageByHero } from '../api/client';
 import HeroStatsView from './HeroStatsView';
+import type { HeroStat } from '../types';
 
-const HeroStats = ({ playerId }) => {
-  const [heroStats, setHeroStats] = useState([]);
+interface HeroStatsProps { playerId: string; }
+
+const HeroStats = ({ playerId }: HeroStatsProps) => {
+  const [heroStats, setHeroStats] = useState<HeroStat[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

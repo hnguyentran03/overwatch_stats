@@ -2,16 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { getMapTrends } from '../api/client';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import MapDetailModal from './MapDetailModal';
+import type { MapStat, MapTrend, Role, TrendPeriod } from '../types';
+
+interface TrendChartProps { playerId: string; }
+interface CumulativePoint { period: string; wins: number; losses: number; win_percentage: string | number; }
+interface TooltipProps { active?: boolean; payload?: Array<{ payload: CumulativePoint }>; label?: string; }
 
 const GAME_MODE_ORDER = ['Control', 'Escort', 'Flashpoint', 'Hybrid', 'Push'];
 
-const TrendChart = ({ playerId }) => {
-  const [trends, setTrends] = useState([]);
+const TrendChart = ({ playerId }: TrendChartProps) => {
+  const [trends, setTrends] = useState<MapTrend[]>([]);
   const [loading, setLoading] = useState(true);
-  const [timeWindow, setTimeWindow] = useState('week');
-  const [roleFilter, setRoleFilter] = useState('all');
-  const [collapsedGroups, setCollapsedGroups] = useState({});
-  const [selectedMap, setSelectedMap] = useState(null);
+  const [timeWindow, setTimeWindow] = useState<'day' | 'week' | 'month'>('week');
+  const [roleFilter, setRoleFilter] = useState<Role | 'all'>('all');
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const [selectedMap, setSelectedMap] = useState<MapStat | null>(null);
 
   useEffect(() => {
     fetchTrends();
@@ -29,14 +34,17 @@ const TrendChart = ({ playerId }) => {
     }
   };
 
-  const toggleGroup = (mode) => {
+  const toggleGroup = (mode: string) => {
     setCollapsedGroups(prev => ({ ...prev, [mode]: !prev[mode] }));
   };
 
-  const buildMapStats = (mapTrend) => {
+  const buildMapStats = (mapTrend: MapTrend): MapStat => {
     const wins = mapTrend.trends.reduce((s, t) => s + t.wins, 0);
     const losses = mapTrend.trends.reduce((s, t) => s + t.losses, 0);
-    const draws = mapTrend.trends.reduce((s, t) => s + (t.draws || 0), 0);
+    // Backend trend periods never actually include `draws` (see calculate_map_trends),
+    // so TrendPeriod has no `draws` field. Cast preserves the original defensive
+    // `t.draws || 0` fallback (always 0 today) without a real `any`.
+    const draws = mapTrend.trends.reduce((s, t) => s + ((t as TrendPeriod & { draws?: number }).draws || 0), 0);
     const total = wins + losses + draws;
     return {
       map_id: mapTrend.map_id,
@@ -46,20 +54,20 @@ const TrendChart = ({ playerId }) => {
       losses,
       draws,
       total,
-      win_percentage: total > 0 ? ((wins / total) * 100).toFixed(2) : 0,
+      win_percentage: total > 0 ? Number(((wins / total) * 100).toFixed(2)) : 0,
     };
   };
 
   if (loading) return <div>Loading trends...</div>;
 
   // Prepare data for overall trend chart (cumulative win %)
-  const periodMap = new Map();
+  const periodMap = new Map<string, { wins: number; losses: number }>();
 
   trends.forEach(mapTrend => {
     mapTrend.trends.forEach(period => {
       const key = period.period_start;
       if (!periodMap.has(key)) periodMap.set(key, { wins: 0, losses: 0 });
-      const data = periodMap.get(key);
+      const data = periodMap.get(key)!;
       data.wins += period.wins;
       data.losses += period.losses;
     });
@@ -67,7 +75,7 @@ const TrendChart = ({ playerId }) => {
 
   let cumWins = 0, cumLosses = 0;
   const overallTrendData = [...periodMap.entries()]
-    .sort((a, b) => new Date(a[0]) - new Date(b[0]))
+    .sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime())
     .map(([key, value]) => {
       cumWins += value.wins;
       cumLosses += value.losses;
@@ -80,7 +88,7 @@ const TrendChart = ({ playerId }) => {
       };
     });
 
-  const WinRateTooltip = ({ active, payload, label }) => {
+  const WinRateTooltip = ({ active, payload, label }: TooltipProps) => {
     if (!active || !payload || !payload.length) return null;
     const d = payload[0].payload;
     return (
@@ -92,7 +100,7 @@ const TrendChart = ({ playerId }) => {
     );
   };
 
-  const groupedTrends = GAME_MODE_ORDER.reduce((acc, mode) => {
+  const groupedTrends = GAME_MODE_ORDER.reduce((acc: Record<string, MapTrend[]>, mode) => {
     acc[mode] = trends.filter(t => t.map_type === mode);
     return acc;
   }, {});
@@ -111,13 +119,13 @@ const TrendChart = ({ playerId }) => {
 
       <div className="controls">
         <label>Time Window: </label>
-        <select value={timeWindow} onChange={(e) => setTimeWindow(e.target.value)}>
+        <select value={timeWindow} onChange={(e) => setTimeWindow(e.target.value as 'day' | 'week' | 'month')}>
           <option value="day">Daily</option>
           <option value="week">Weekly</option>
           <option value="month">Monthly</option>
         </select>
         <label>Role: </label>
-        <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+        <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value as Role | 'all')}>
           <option value="all">All Roles</option>
           <option value="tank">Tank</option>
           <option value="dps">DPS</option>
@@ -173,7 +181,7 @@ const TrendChart = ({ playerId }) => {
                     mapsInGroup.map((mapTrend) => {
                       let mCumWins = 0, mCumLosses = 0;
                       const trendData = [...mapTrend.trends]
-                        .sort((a, b) => new Date(a.period_start) - new Date(b.period_start))
+                        .sort((a, b) => new Date(a.period_start).getTime() - new Date(b.period_start).getTime())
                         .map(t => {
                           mCumWins += t.wins;
                           mCumLosses += t.losses;

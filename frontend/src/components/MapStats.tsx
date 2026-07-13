@@ -3,16 +3,20 @@ import { getWinPercentageByMap, getWinPercentageByHero } from '../api/client';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import MapDetailModal from './MapDetailModal';
 import HeroDetailModal from './HeroDetailModal';
+import type { HeroStat, MapStat, MapType, Role } from '../types';
 
-const MapStats = ({ playerId }) => {
-  const [mapStats, setMapStats] = useState([]);
-  const [allHeroes, setAllHeroes] = useState([]);
+interface MapStatsProps { playerId: string; }
+interface TooltipProps { active?: boolean; payload?: Array<{ payload: MapStat }>; label?: string; }
+
+const MapStats = ({ playerId }: MapStatsProps) => {
+  const [mapStats, setMapStats] = useState<MapStat[]>([]);
+  const [allHeroes, setAllHeroes] = useState<HeroStat[]>([]);
   const [loading, setLoading] = useState(true);
-  const [mapTypeFilter, setMapTypeFilter] = useState('all');
-  const [roleFilter, setRoleFilter] = useState('all');
-  const [heroFilter, setHeroFilter] = useState('all');
-  const [selectedMap, setSelectedMap] = useState(null);
-  const [selectedHeroMap, setSelectedHeroMap] = useState(null);
+  const [mapTypeFilter, setMapTypeFilter] = useState<MapType | 'all'>('all');
+  const [roleFilter, setRoleFilter] = useState<Role | 'all'>('all');
+  const [heroFilter, setHeroFilter] = useState<string>('all');
+  const [selectedMap, setSelectedMap] = useState<MapStat | null>(null);
+  const [selectedHeroMap, setSelectedHeroMap] = useState<{ hero: HeroStat; mapName: string } | null>(null);
 
   useEffect(() => {
     getWinPercentageByHero(playerId)
@@ -40,8 +44,8 @@ const MapStats = ({ playerId }) => {
     }
   };
 
-  const handleRoleChange = (e) => {
-    setRoleFilter(e.target.value);
+  const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setRoleFilter(e.target.value as Role | 'all');
     setHeroFilter('all');
   };
 
@@ -49,7 +53,7 @@ const MapStats = ({ playerId }) => {
     ? allHeroes
     : allHeroes.filter(h => h.role === roleFilter);
 
-  const handleBarClick = async (data) => {
+  const handleBarClick = async (data: any) => {
     if (heroFilter !== 'all') {
       try {
         const result = await getWinPercentageByHero(playerId, data.map_id);
@@ -74,7 +78,7 @@ const MapStats = ({ playerId }) => {
   // Keep the backend sorting order (by map type, then alphabetically)
   const sortedStats = filteredStats;
 
-  const WinRateTooltip = ({ active, payload, label }) => {
+  const WinRateTooltip = ({ active, payload, label }: TooltipProps) => {
     if (!active || !payload || !payload.length) return null;
     const d = payload[0].payload;
     return (
@@ -87,7 +91,7 @@ const MapStats = ({ playerId }) => {
   };
 
   // Color code bars: red for low win rate, green for high
-  const getColor = (winRate) => {
+  const getColor = (winRate: number) => {
     if (winRate >= 48 && winRate <= 52) return '#ffc400';
     return winRate > 52 ? '#44ff44' : '#ff4444';
   };
@@ -114,7 +118,7 @@ const MapStats = ({ playerId }) => {
 
       <div className="controls">
         <label>Map Type: </label>
-        <select value={mapTypeFilter} onChange={(e) => setMapTypeFilter(e.target.value)}>
+        <select value={mapTypeFilter} onChange={(e) => setMapTypeFilter(e.target.value as MapType | 'all')}>
           <option value="all">All Types</option>
           <option value="Control">Control</option>
           <option value="Hybrid">Hybrid</option>

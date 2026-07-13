@@ -1,8 +1,17 @@
 import React, { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import HeroDetailModal from './HeroDetailModal';
+import type { HeroStat, Role } from '../types';
 
-const COLUMNS = [
+interface Column { key: keyof HeroStat; label: string; numeric: boolean; }
+interface HeroStatsViewProps {
+  heroes: HeroStat[];
+  compact?: boolean;
+  defaultRoleFilter?: Role | 'all';
+  mapName?: string | null;
+}
+
+const COLUMNS: Column[] = [
   { key: 'hero_name',              label: 'Hero',              numeric: false },
   { key: 'role',                   label: 'Role',              numeric: false },
   { key: 'total',                  label: 'Games',             numeric: true  },
@@ -18,15 +27,15 @@ const COLUMNS = [
   { key: 'total_damage_mitigated', label: 'Total Mitigation',  numeric: true  },
 ];
 
-const roleOrder = { tank: 0, dps: 1, support: 2 };
+const roleOrder: Record<string, number> = { tank: 0, dps: 1, support: 2 };
 
-const HeroStatsView = ({ heroes, compact = false, defaultRoleFilter = 'all', mapName = null }) => {
-  const [roleFilter, setRoleFilter] = useState(defaultRoleFilter);
-  const [selectedHero, setSelectedHero] = useState(null);
-  const [sortCol, setSortCol] = useState(null);
-  const [sortDir, setSortDir] = useState('desc');
+const HeroStatsView = ({ heroes, compact = false, defaultRoleFilter = 'all', mapName = null }: HeroStatsViewProps) => {
+  const [roleFilter, setRoleFilter] = useState<Role | 'all'>(defaultRoleFilter);
+  const [selectedHero, setSelectedHero] = useState<HeroStat | null>(null);
+  const [sortCol, setSortCol] = useState<keyof HeroStat | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
-  const handleSort = (key) => {
+  const handleSort = (key: keyof HeroStat) => {
     if (sortCol === key) {
       setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     } else {
@@ -41,29 +50,29 @@ const HeroStatsView = ({ heroes, compact = false, defaultRoleFilter = 'all', map
   const sortedHeroes = sortCol
     ? [...filtered].sort((a, b) => {
         const col = COLUMNS.find(c => c.key === sortCol);
-        let aVal = a[sortCol];
-        let bVal = b[sortCol];
+        let aVal: string | number = a[sortCol];
+        let bVal: string | number = b[sortCol];
         if (sortCol === 'role') {
           aVal = roleOrder[aVal] ?? 99;
           bVal = roleOrder[bVal] ?? 99;
         }
-        const cmp = col.numeric ? aVal - bVal : String(aVal).localeCompare(String(bVal));
+        const cmp = col!.numeric ? (aVal as number) - (bVal as number) : String(aVal).localeCompare(String(bVal));
         return sortDir === 'asc' ? cmp : -cmp;
       })
     : filtered;
 
-  const formatTime = (minutes) => {
+  const formatTime = (minutes: number) => {
     if (minutes < 100) return `${Math.round(minutes)} min`;
     const hrs = Math.round(minutes / 60);
     return `${hrs} ${hrs === 1 ? 'hr' : 'hrs'}`;
   };
 
-  const getWinRateColor = (pct) => {
+  const getWinRateColor = (pct: number) => {
     if (pct >= 48 && pct <= 52) return '#ffc400';
     return pct > 52 ? '#44ff44' : '#ff4444';
   };
 
-  const getRoleColor = (role) => {
+  const getRoleColor = (role: string) => {
     switch (role) {
       case 'tank': return '#2196F3';
       case 'dps': return '#ff9c00';
@@ -72,12 +81,13 @@ const HeroStatsView = ({ heroes, compact = false, defaultRoleFilter = 'all', map
     }
   };
 
-  const SortIcon = ({ colKey }) => {
+  const SortIcon = ({ colKey }: { colKey: keyof HeroStat }) => {
     if (sortCol !== colKey) return <span className="sort-icon sort-icon-idle">⇅</span>;
     return <span className="sort-icon">{sortDir === 'asc' ? '↑' : '↓'}</span>;
   };
 
-  const WinRateTooltip = ({ active, payload, label }) => {
+  interface TooltipProps { active?: boolean; payload?: Array<{ payload: HeroStat }>; label?: string; }
+  const WinRateTooltip = ({ active, payload, label }: TooltipProps) => {
     if (!active || !payload || !payload.length) return null;
     const d = payload[0].payload;
     return (
@@ -97,7 +107,7 @@ const HeroStatsView = ({ heroes, compact = false, defaultRoleFilter = 'all', map
 
       <div className="controls">
         <label>Filter by Role: </label>
-        <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+        <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value as Role | 'all')}>
           <option value="all">All Roles</option>
           <option value="tank">Tank</option>
           <option value="dps">DPS</option>
@@ -124,7 +134,7 @@ const HeroStatsView = ({ heroes, compact = false, defaultRoleFilter = 'all', map
               label={{ value: 'Win %', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
             />
             <Tooltip content={<WinRateTooltip />} />
-            <Bar dataKey="win_percentage" name="Win %" cursor="pointer" onClick={(data) => setSelectedHero(data)}>
+            <Bar dataKey="win_percentage" name="Win %" cursor="pointer" onClick={(data: any) => setSelectedHero(data as HeroStat)}>
               {sortedHeroes.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={getRoleColor(entry.role)} />
               ))}

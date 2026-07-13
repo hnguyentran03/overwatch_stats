@@ -1,14 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { getWinPercentageByHero } from '../api/client';
 import HeroStatsView from './HeroStatsView';
+import type { HeroStat, MapStat, Role } from '../types';
 
-const MapDetailModal = ({ map, playerId, onClose, roleFilter = 'all' }) => {
-  const [heroStats, setHeroStats] = useState([]);
+interface MapDetailModalProps {
+  map: MapStat;
+  playerId: string;
+  onClose: () => void;
+  roleFilter?: Role | 'all';
+}
+
+const MapDetailModal = ({ map, playerId, onClose, roleFilter = 'all' }: MapDetailModalProps) => {
+  const [heroStats, setHeroStats] = useState<HeroStat[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const handleKey = (e) => { if (e.key === 'Escape') onClose(); };
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, [onClose]);
@@ -22,11 +30,11 @@ const MapDetailModal = ({ map, playerId, onClose, roleFilter = 'all' }) => {
       .finally(() => setLoading(false));
   }, [playerId, map.map_id]);
 
-  const handleBackdropClick = (e) => {
+  const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) onClose();
   };
 
-  const getWinRateColor = (pct) => {
+  const getWinRateColor = (pct: number) => {
     if (pct >= 48 && pct <= 52) return '#ffc400';
     return pct > 52 ? '#44ff44' : '#ff4444';
   };

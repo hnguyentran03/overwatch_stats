@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { getMatchDetails } from '../api/client';
+import type { MatchDetails, MatchDetailPlayer } from '../types';
 
-const roleOrder = { tank: 0, dps: 1, support: 2 };
+const roleOrder: Record<string, number> = { tank: 0, dps: 1, support: 2 };
 
-const MatchDetailModal = ({ matchId, battleTag, onClose }) => {
-  const [details, setDetails] = useState(null);
+const MatchDetailModal = ({ matchId, battleTag, onClose }: { matchId: number; battleTag: string; onClose: () => void }) => {
+  const [details, setDetails] = useState<MatchDetails | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [expandedPlayer, setExpandedPlayer] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [expandedPlayer, setExpandedPlayer] = useState<number | null>(null);
 
   useEffect(() => {
-    const handleKey = (e) => { if (e.key === 'Escape') onClose(); };
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, [onClose]);
@@ -24,24 +25,24 @@ const MatchDetailModal = ({ matchId, battleTag, onClose }) => {
       .finally(() => setLoading(false));
   }, [matchId]);
 
-  const handleBackdropClick = (e) => {
+  const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) onClose();
   };
 
-  const formatNumber = (n) => Math.round(n).toLocaleString();
-  const formatTime = (minutes) => {
+  const formatNumber = (n: number) => Math.round(n).toLocaleString();
+  const formatTime = (minutes: number) => {
     const m = Math.floor(minutes);
     const s = Math.round((minutes % 1) * 60);
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  const outcomeLabel = (outcome, score) => {
+  const outcomeLabel = (outcome: string, score: string) => {
     if (outcome === 'win')  return `✓ WIN  ${score}`;
     if (outcome === 'draw') return `= DRAW  ${score}`;
     return `✗ LOSS  ${score}`;
   };
 
-  const sortedPlayers = (players) =>
+  const sortedPlayers = (players: MatchDetailPlayer[]) =>
     [...players].sort((a, b) => {
       if (a.team !== b.team) return a.team === 'team1' ? -1 : 1;
       return roleOrder[a.primary_hero_role] - roleOrder[b.primary_hero_role];
@@ -184,7 +185,7 @@ const MatchDetailModal = ({ matchId, battleTag, onClose }) => {
               <div className="modal-bans-section">
                 <h3>Hero Bans</h3>
                 <div className="modal-bans-grid">
-                  {['team1', 'team2'].map((team, ti) => (
+                  {(['team1', 'team2'] as const).map((team, ti) => (
                     <div key={team} className="modal-bans-team">
                       <h4>{ti === 0 ? 'Your Team' : 'Enemy Team'}</h4>
                       {details.bans[team].length === 0

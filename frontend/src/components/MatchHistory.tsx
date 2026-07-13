@@ -1,14 +1,20 @@
 import React, { useState } from 'react';
+import type { MatchOutcome } from '../types';
+
+interface MatchHistoryProps {
+  matches: MatchOutcome[];
+  onMatchClick?: (matchId: number) => void;
+}
 
 const PAGE_SIZE = 20;
 
-const formatTime = (minutes) => {
+const formatTime = (minutes: number) => {
   const m = Math.floor(minutes);
   const s = Math.round((minutes % 1) * 60);
   return `${m}:${s.toString().padStart(2, '0')}`;
 };
 
-const MatchHistory = ({ matches, onMatchClick }) => {
+const MatchHistory = ({ matches, onMatchClick }: MatchHistoryProps) => {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   if (!matches || matches.length === 0) {
