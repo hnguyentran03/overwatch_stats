@@ -66,9 +66,9 @@ const now = (): string => {
 };
 
 const ROLE_LIMITS: Record<Role, number> = { tank: 1, dps: 2, support: 2 };
-const ROLE_LABEL: Record<Role, string>  = { tank: 'T', dps: 'D', support: 'S' };
+const ROLE_LABEL: Record<Role, string> = { tank: 'T', dps: 'D', support: 'S' };
 const MAX_BAN_TOTAL = 2;
-const MAX_BAN_ROLE  = 2;
+const MAX_BAN_ROLE = 2;
 
 const LogMatch = ({ onSuccess, onCancel }: LogMatchProps) => {
   const [heroes, setHeroes] = useState<Hero[]>([]);
@@ -86,6 +86,7 @@ const LogMatch = ({ onSuccess, onCancel }: LogMatchProps) => {
     outcome: 'win',
     final_score: '',
     duration: '',
+    players: [{ ...EMPTY_PLAYER }],
     players: [{ ...EMPTY_PLAYER }],
     bans: { team1: [], team2: [] },
   });
@@ -161,9 +162,9 @@ const LogMatch = ({ onSuccess, onCancel }: LogMatchProps) => {
     const comp = getTeamComp(team);
     const label = team === 'team1' ? 'Team 1' : 'Team 2';
     const errs: string[] = [];
-    if (comp.total > 5)     errs.push(`${label}: too many players (${comp.total}/5)`);
-    if (comp.tank !== 1)    errs.push(`${label}: needs 1 Tank (has ${comp.tank})`);
-    if (comp.dps !== 2)     errs.push(`${label}: needs 2 Damage (has ${comp.dps})`);
+    if (comp.total > 5) errs.push(`${label}: too many players (${comp.total}/5)`);
+    if (comp.tank !== 1) errs.push(`${label}: needs 1 Tank (has ${comp.tank})`);
+    if (comp.dps !== 2) errs.push(`${label}: needs 2 Damage (has ${comp.dps})`);
     if (comp.support !== 2) errs.push(`${label}: needs 2 Supports (has ${comp.support})`);
     return errs;
   };
@@ -437,6 +438,16 @@ const LogMatch = ({ onSuccess, onCancel }: LogMatchProps) => {
         </div>
       )}
 
+      {parsing && (
+        <div className="modal-backdrop lm-parsing-backdrop" role="dialog" aria-modal="true" aria-label="Reading scoreboard">
+          <div className="modal-content lm-parsing-modal">
+            <div className="lm-parsing-spinner" />
+            <p className="lm-parsing-text">Reading scoreboard…</p>
+            <p className="lm-parsing-sub">This can take a few seconds. Please wait.</p>
+          </div>
+        </div>
+      )}
+
       <div className="lm-header">
         <h2>Log Match</h2>
         <button className="lm-cancel-btn" onClick={onCancel} type="button">
@@ -468,7 +479,41 @@ const LogMatch = ({ onSuccess, onCancel }: LogMatchProps) => {
         </div>
       )}
 
+      {didAutofill && (
+        <div className="lm-autofill-warning">
+          <div className="lm-autofill-warning-title">⚠ Autofill is incomplete — review before saving</div>
+          {autofillMissingHeroes > 0 && (
+            <div className="lm-autofill-warning-line lm-autofill-warning-critical">
+              {autofillMissingHeroes} hero{autofillMissingHeroes > 1 ? 'es' : ''} could not be identified —
+              pick {autofillMissingHeroes > 1 ? 'them' : 'it'} in the highlighted slot{autofillMissingHeroes > 1 ? 's' : ''} below.
+            </div>
+          )}
+          <div className="lm-autofill-warning-line">
+            The scoreboard doesn't include <strong>final blows</strong>, <strong>time played</strong>,
+            or battle-tag <strong>#IDs</strong> (e.g. <code>#1234</code>) — fill these in yourself.
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="lm-form">
+
+        {/* ── Scoreboard Upload ── */}
+        <section className="lm-section lm-scoreboard-upload">
+          <label className="lm-scoreboard-btn">
+            {parsing ? 'Reading scoreboard…' : '📷 Upload Scoreboard'}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleScoreboardUpload}
+              disabled={parsing}
+              style={{ display: 'none' }}
+            />
+          </label>
+          <span className="lm-scoreboard-hint">
+            Autofills heroes and stats for both teams. Review highlighted rows —
+            final blows, time played, and battle-tag IDs (#1234) still need you.
+          </span>
+        </section>
 
         {/* ── Scoreboard Upload ── */}
         <section className="lm-section lm-scoreboard-upload">
@@ -573,234 +618,244 @@ const LogMatch = ({ onSuccess, onCancel }: LogMatchProps) => {
 
           return (
             <section key={pi} className={`lm-section lm-player-section${compErrors.length ? ' lm-section-invalid' : ''}${autofilledRows.has(pi) ? ' lm-autofilled' : ''}${autofilledRows.has(pi) && !player.heroes[0]?.hero_name ? ' lm-autofilled-incomplete' : ''}`}>
-              <div className="lm-player-header">
-                <h3 className="lm-section-title">
-                  {`Player ${pi + 1}`}
-                  {autofilledRows.has(pi) && !player.heroes[0]?.hero_name && (
-                    <span className="lm-row-incomplete-badge">needs hero</span>
-                  )}
-                </h3>
-                <TeamCompBadge team={player.team} />
-                {pi > 0 && (
-                  <button type="button" className="lm-remove-btn" onClick={() => removePlayer(pi)}>
-                    Remove Player
-                  </button>
-                )}
-              </div>
-
-              <div className="lm-grid lm-player-meta">
-                <div className="lm-field">
-                  <label>Battle Tag</label>
-                  <input
-                    type="text"
-                    value={player.battle_tag}
-                    onChange={e => setPlayerField(pi, 'battle_tag', e.target.value)}
-                    className="lm-input"
-                    placeholder="Name#1234"
-                    required
-                  />
-                </div>
-                <div className="lm-field">
-                  <label>Team Side</label>
-                  <div className="lm-team-btns">
-                    {(['team1', 'team2'] as const).map(t => {
-                      const allowed = canSwitchToTeam(pi, t);
-                      const active = player.team === t;
-                      let title = '';
-                      if (!allowed && !active) {
-                        const comp = getTeamComp(t);
-                        if (comp.total >= 5) title = `${t === 'team1' ? 'Team 1' : 'Team 2'} is full (5/5)`;
-                        else title = `${primaryRole} slot is full on ${t === 'team1' ? 'Team 1' : 'Team 2'}`;
-                      }
-                      return (
-                        <button
-                          key={t}
-                          type="button"
-                          className={`lm-team-btn lm-${t}${active ? ' active' : ''}${!allowed && !active ? ' disabled' : ''}`}
-                          onClick={() => allowed && setPlayerField(pi, 'team', t)}
-                          title={title}
-                        >
-                          {t === 'team1' ? 'Team 1' : 'Team 2'}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-
-              {/* Hero slots */}
-              {player.heroes.map((heroSlot, hi) => (
-                <div key={hi} className="lm-hero-slot">
-                  <div className="lm-hero-slot-header">
-                    <span className="lm-hero-slot-label">
-                      {hi === 0 ? 'Hero Played' : `Hero Swap ${hi}`}
-                    </span>
-                    {hi > 0 && (
-                      <button type="button" className="lm-remove-btn" onClick={() => removeHeroSlot(pi, hi)}>
-                        Remove
-                      </button>
+              <section key={pi} className={`lm-section lm-player-section${compErrors.length ? ' lm-section-invalid' : ''}${autofilledRows.has(pi) ? ' lm-autofilled' : ''}${autofilledRows.has(pi) && !player.heroes[0]?.hero_name ? ' lm-autofilled-incomplete' : ''}`}>
+                <div className="lm-player-header">
+                  <h3 className="lm-section-title">
+                    {`Player ${pi + 1}`}
+                    {autofilledRows.has(pi) && !player.heroes[0]?.hero_name && (
+                      <span className="lm-row-incomplete-badge">needs hero</span>
                     )}
-                  </div>
+                    {`Player ${pi + 1}`}
+                    {autofilledRows.has(pi) && !player.heroes[0]?.hero_name && (
+                      <span className="lm-row-incomplete-badge">needs hero</span>
+                    )}
+                  </h3>
+                  <TeamCompBadge team={player.team} />
+                  {pi > 0 && (
+                    <button type="button" className="lm-remove-btn" onClick={() => removePlayer(pi)}>
+                      Remove Player
+                    </button>
+                  )}
+                </div>
 
-                  <div className="lm-hero-row">
-                    <div className={`lm-field lm-field-hero${heroNeedsPick(pi, hi, heroSlot) ? ' lm-field-needs-hero' : ''}`}>
-                      <label>Hero{heroNeedsPick(pi, hi, heroSlot) ? ' ⚠' : ''}</label>
-                      {hi === 0 ? (
-                        <HeroSelect
-                          value={heroSlot.hero_name}
-                          onChange={v => handlePrimaryHeroChange(pi, v)}
-                          availableRoles={availableRoles}
-                        />
-                      ) : (
-                        <HeroSelect
-                          value={heroSlot.hero_name}
-                          onChange={v => setHeroField(pi, hi, 'hero_name', v)}
-                          requiredRole={primaryRole}
-                        />
-                      )}
-                      {heroNeedsPick(pi, hi, heroSlot) && (
-                        <span className="lm-needs-hero-note">Not recognized — pick the hero</span>
-                      )}
-                    </div>
-                    <div className="lm-field">
-                      <label>Time Played (min)</label>
-                      <input type="number" value={heroSlot.time_played} min="0" step="0.1"
-                        onChange={e => setHeroField(pi, hi, 'time_played', e.target.value)}
-                        className="lm-input" placeholder="0" />
-                    </div>
-                    <div className="lm-field">
-                      <label>Elims</label>
-                      <input type="number" value={heroSlot.eliminations} min="0"
-                        onChange={e => setHeroField(pi, hi, 'eliminations', e.target.value)}
-                        className="lm-input" placeholder="0" />
-                    </div>
-                    <div className="lm-field">
-                      <label>Final Blows</label>
-                      <input type="number" value={heroSlot.final_blows} min="0"
-                        onChange={e => setHeroField(pi, hi, 'final_blows', e.target.value)}
-                        className="lm-input" placeholder="0" />
-                    </div>
-                    <div className="lm-field">
-                      <label>Assists</label>
-                      <input type="number" value={heroSlot.assists} min="0"
-                        onChange={e => setHeroField(pi, hi, 'assists', e.target.value)}
-                        className="lm-input" placeholder="0" />
-                    </div>
-                    <div className="lm-field">
-                      <label>Deaths</label>
-                      <input type="number" value={heroSlot.deaths} min="0"
-                        onChange={e => setHeroField(pi, hi, 'deaths', e.target.value)}
-                        className="lm-input" placeholder="0" />
-                    </div>
-                    <div className="lm-field">
-                      <label>Damage Done</label>
-                      <input type="number" value={heroSlot.damage_done} min="0" step="1"
-                        onChange={e => setHeroField(pi, hi, 'damage_done', e.target.value)}
-                        className="lm-input" placeholder="0" />
-                    </div>
-                    <div className="lm-field">
-                      <label>Healing Done</label>
-                      <input type="number" value={heroSlot.healing_done} min="0" step="1"
-                        onChange={e => setHeroField(pi, hi, 'healing_done', e.target.value)}
-                        className="lm-input" placeholder="0" />
-                    </div>
-                    <div className="lm-field">
-                      <label>Dmg Mitigated</label>
-                      <input type="number" value={heroSlot.damage_mitigated} min="0" step="1"
-                        onChange={e => setHeroField(pi, hi, 'damage_mitigated', e.target.value)}
-                        className="lm-input" placeholder="0" />
+                <div className="lm-grid lm-player-meta">
+                  <div className="lm-field">
+                    <label>Battle Tag</label>
+                    <input
+                      type="text"
+                      value={player.battle_tag}
+                      onChange={e => setPlayerField(pi, 'battle_tag', e.target.value)}
+                      className="lm-input"
+                      placeholder="Name#1234"
+                      required
+                    />
+                  </div>
+                  <div className="lm-field">
+                    <label>Team Side</label>
+                    <div className="lm-team-btns">
+                      {(['team1', 'team2'] as const).map(t => {
+                        const allowed = canSwitchToTeam(pi, t);
+                        const active = player.team === t;
+                        let title = '';
+                        if (!allowed && !active) {
+                          const comp = getTeamComp(t);
+                          if (comp.total >= 5) title = `${t === 'team1' ? 'Team 1' : 'Team 2'} is full (5/5)`;
+                          else title = `${primaryRole} slot is full on ${t === 'team1' ? 'Team 1' : 'Team 2'}`;
+                        }
+                        return (
+                          <button
+                            key={t}
+                            type="button"
+                            className={`lm-team-btn lm-${t}${active ? ' active' : ''}${!allowed && !active ? ' disabled' : ''}`}
+                            onClick={() => allowed && setPlayerField(pi, 'team', t)}
+                            title={title}
+                          >
+                            {t === 'team1' ? 'Team 1' : 'Team 2'}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
-              ))}
 
-              <button
-                type="button"
-                className="lm-add-hero-btn"
-                onClick={() => addHeroSlot(pi)}
-                disabled={!hasPrimaryHero}
-                title={!hasPrimaryHero ? 'Select a primary hero first' : ''}
-              >
-                + Add Hero Swap
-              </button>
-            </section>
-          );
-        })}
-
-        <button type="button" className="lm-add-player-btn" onClick={addPlayer}>
-          + Add Another Player
-        </button>
-
-        {/* ── Bans ── */}
-        <section className="lm-section">
-          <button
-            type="button"
-            className="lm-bans-toggle"
-            onClick={() => setShowBans(s => !s)}
-          >
-            Hero Bans (optional) {showBans ? '▲' : '▼'}
-          </button>
-
-          {showBans && (
-            <div className="lm-bans">
-              {(['team1', 'team2'] as const).map(team => {
-                const banComp = getBanComp(team);
-                const atMax = banComp.total >= MAX_BAN_TOTAL;
-                return (
-                  <div key={team} className="lm-bans-team">
-                    <h4 className={`lm-bans-team-title lm-${team}`}>
-                      {team === 'team1' ? 'Team 1' : 'Team 2'} Bans
-                      <span className={`lm-ban-count${atMax ? ' lm-ban-count-full' : ''}`}>
-                        {banComp.total}/{MAX_BAN_TOTAL}
+                {/* Hero slots */}
+                {player.heroes.map((heroSlot, hi) => (
+                  <div key={hi} className="lm-hero-slot">
+                    <div className="lm-hero-slot-header">
+                      <span className="lm-hero-slot-label">
+                        {hi === 0 ? 'Hero Played' : `Hero Swap ${hi}`}
                       </span>
-                    </h4>
-                    {(['tank', 'dps', 'support'] as const).map(role => (
-                      <div key={role} className="lm-bans-role-group">
-                        <span className={`lm-bans-role-label lm-role-${role}`}>{role.toUpperCase()}</span>
-                        <div className="lm-bans-grid">
-                          {(herosByRole[role] || []).map(h => {
-                            const selected = form.bans[team].includes(h.hero_name);
-                            const disabled = isBanDisabled(team, h.hero_name);
-                            return (
-                              <button
-                                key={h.hero_id}
-                                type="button"
-                                className={`lm-ban-chip lm-role-${h.role}${selected ? ' selected' : ''}${disabled ? ' ban-disabled' : ''}`}
-                                onClick={() => toggleBan(team, h.hero_name)}
-                                disabled={disabled}
-                                title={disabled ? (atMax && !selected ? 'Ban limit reached (2/2)' : `${h.role} ban limit reached`) : ''}
-                              >
-                                {h.hero_name}
-                              </button>
-                            );
-                          })}
+                      {hi > 0 && (
+                        <button type="button" className="lm-remove-btn" onClick={() => removeHeroSlot(pi, hi)}>
+                          Remove
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="lm-hero-row">
+                      <div className={`lm-field lm-field-hero${heroNeedsPick(pi, hi, heroSlot) ? ' lm-field-needs-hero' : ''}`}>
+                        <label>Hero{heroNeedsPick(pi, hi, heroSlot) ? ' ⚠' : ''}</label>
+                        <div className={`lm-field lm-field-hero${heroNeedsPick(pi, hi, heroSlot) ? ' lm-field-needs-hero' : ''}`}>
+                          <label>Hero{heroNeedsPick(pi, hi, heroSlot) ? ' ⚠' : ''}</label>
+                          {hi === 0 ? (
+                            <HeroSelect
+                              value={heroSlot.hero_name}
+                              onChange={v => handlePrimaryHeroChange(pi, v)}
+                              availableRoles={availableRoles}
+                            />
+                          ) : (
+                            <HeroSelect
+                              value={heroSlot.hero_name}
+                              onChange={v => setHeroField(pi, hi, 'hero_name', v)}
+                              requiredRole={primaryRole}
+                            />
+                          )}
+                          {heroNeedsPick(pi, hi, heroSlot) && (
+                            <span className="lm-needs-hero-note">Not recognized — pick the hero</span>
+                          )}
+                          {heroNeedsPick(pi, hi, heroSlot) && (
+                            <span className="lm-needs-hero-note">Not recognized — pick the hero</span>
+                          )}
+                        </div>
+                        <div className="lm-field">
+                          <label>Time Played (min)</label>
+                          <input type="number" value={heroSlot.time_played} min="0" step="0.1"
+                            onChange={e => setHeroField(pi, hi, 'time_played', e.target.value)}
+                            className="lm-input" placeholder="0" />
+                        </div>
+                        <div className="lm-field">
+                          <label>Elims</label>
+                          <input type="number" value={heroSlot.eliminations} min="0"
+                            onChange={e => setHeroField(pi, hi, 'eliminations', e.target.value)}
+                            className="lm-input" placeholder="0" />
+                        </div>
+                        <div className="lm-field">
+                          <label>Final Blows</label>
+                          <input type="number" value={heroSlot.final_blows} min="0"
+                            onChange={e => setHeroField(pi, hi, 'final_blows', e.target.value)}
+                            className="lm-input" placeholder="0" />
+                        </div>
+                        <div className="lm-field">
+                          <label>Assists</label>
+                          <input type="number" value={heroSlot.assists} min="0"
+                            onChange={e => setHeroField(pi, hi, 'assists', e.target.value)}
+                            className="lm-input" placeholder="0" />
+                        </div>
+                        <div className="lm-field">
+                          <label>Deaths</label>
+                          <input type="number" value={heroSlot.deaths} min="0"
+                            onChange={e => setHeroField(pi, hi, 'deaths', e.target.value)}
+                            className="lm-input" placeholder="0" />
+                        </div>
+                        <div className="lm-field">
+                          <label>Damage Done</label>
+                          <input type="number" value={heroSlot.damage_done} min="0" step="1"
+                            onChange={e => setHeroField(pi, hi, 'damage_done', e.target.value)}
+                            className="lm-input" placeholder="0" />
+                        </div>
+                        <div className="lm-field">
+                          <label>Healing Done</label>
+                          <input type="number" value={heroSlot.healing_done} min="0" step="1"
+                            onChange={e => setHeroField(pi, hi, 'healing_done', e.target.value)}
+                            className="lm-input" placeholder="0" />
+                        </div>
+                        <div className="lm-field">
+                          <label>Dmg Mitigated</label>
+                          <input type="number" value={heroSlot.damage_mitigated} min="0" step="1"
+                            onChange={e => setHeroField(pi, hi, 'damage_mitigated', e.target.value)}
+                            className="lm-input" placeholder="0" />
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+              ))}
+
+                    <button
+                      type="button"
+                      className="lm-add-hero-btn"
+                      onClick={() => addHeroSlot(pi)}
+                      disabled={!hasPrimaryHero}
+                      title={!hasPrimaryHero ? 'Select a primary hero first' : ''}
+                    >
+                      + Add Hero Swap
+                    </button>
+                  </section>
                 );
-              })}
+        })}
+
+                <button type="button" className="lm-add-player-btn" onClick={addPlayer}>
+                  + Add Another Player
+                </button>
+
+                {/* ── Bans ── */}
+                <section className="lm-section">
+                  <button
+                    type="button"
+                    className="lm-bans-toggle"
+                    onClick={() => setShowBans(s => !s)}
+                  >
+                    Hero Bans (optional) {showBans ? '▲' : '▼'}
+                  </button>
+
+                  {showBans && (
+                    <div className="lm-bans">
+                      {(['team1', 'team2'] as const).map(team => {
+                        const banComp = getBanComp(team);
+                        const atMax = banComp.total >= MAX_BAN_TOTAL;
+                        return (
+                          <div key={team} className="lm-bans-team">
+                            <h4 className={`lm-bans-team-title lm-${team}`}>
+                              {team === 'team1' ? 'Team 1' : 'Team 2'} Bans
+                              <span className={`lm-ban-count${atMax ? ' lm-ban-count-full' : ''}`}>
+                                {banComp.total}/{MAX_BAN_TOTAL}
+                              </span>
+                            </h4>
+                            {(['tank', 'dps', 'support'] as const).map(role => (
+                              <div key={role} className="lm-bans-role-group">
+                                <span className={`lm-bans-role-label lm-role-${role}`}>{role.toUpperCase()}</span>
+                                <div className="lm-bans-grid">
+                                  {(herosByRole[role] || []).map(h => {
+                                    const selected = form.bans[team].includes(h.hero_name);
+                                    const disabled = isBanDisabled(team, h.hero_name);
+                                    return (
+                                      <button
+                                        key={h.hero_id}
+                                        type="button"
+                                        className={`lm-ban-chip lm-role-${h.role}${selected ? ' selected' : ''}${disabled ? ' ban-disabled' : ''}`}
+                                        onClick={() => toggleBan(team, h.hero_name)}
+                                        disabled={disabled}
+                                        title={disabled ? (atMax && !selected ? 'Ban limit reached (2/2)' : `${h.role} ban limit reached`) : ''}
+                                      >
+                                        {h.hero_name}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </section>
+
+                {/* ── Submit ── */}
+                <div className="lm-submit-row">
+                  <button type="button" className="lm-cancel-btn" onClick={onCancel}>
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="lm-submit-btn"
+                    disabled={submitting || !canSubmit}
+                    title={!canSubmit ? 'Fix team composition errors before saving' : ''}
+                  >
+                    {submitting ? 'Saving...' : 'Save Match'}
+                  </button>
+                </div>
+              </form>
             </div>
-          )}
-        </section>
+          );
+        };
 
-        {/* ── Submit ── */}
-        <div className="lm-submit-row">
-          <button type="button" className="lm-cancel-btn" onClick={onCancel}>
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="lm-submit-btn"
-            disabled={submitting || !canSubmit}
-            title={!canSubmit ? 'Fix team composition errors before saving' : ''}
-          >
-            {submitting ? 'Saving...' : 'Save Match'}
-          </button>
-        </div>
-      </form>
-    </div>
-  );
-};
-
-export default LogMatch;
+        export default LogMatch;
