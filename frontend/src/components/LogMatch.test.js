@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import LogMatch from './LogMatch';
-import { getHeroes, getMaps, createMatch } from '../api/client';
+import { getHeroes, getMaps, createMatch, parseScoreboard } from '../api/client';
 
 jest.mock('../api/client');
 
@@ -23,6 +23,7 @@ beforeEach(() => {
   getHeroes.mockReset();
   getMaps.mockReset();
   createMatch.mockReset();
+  parseScoreboard.mockReset();
   getHeroes.mockResolvedValue(HEROES);
   getMaps.mockResolvedValue(MAPS);
   createMatch.mockResolvedValue({ match_id: 1 });
@@ -46,14 +47,16 @@ describe('LogMatch', () => {
 
   test('loads heroes and maps then shows the form', async () => {
     await renderLogMatch();
-    expect(screen.getByText('Your Stats')).toBeInTheDocument();
+    expect(screen.getByText('Player 1')).toBeInTheDocument();
     // Map dropdown populated.
     expect(screen.getByRole('option', { name: "King's Row" })).toBeInTheDocument();
   });
 
-  test('prefills the default battle tag', async () => {
-    await renderLogMatch({ defaultBattleTag: 'Me#1234' });
-    expect(screen.getByDisplayValue('Me#1234')).toBeInTheDocument();
+  test('first player is generic with no prefilled battle tag', async () => {
+    await renderLogMatch();
+    const tagInput = screen.getByPlaceholderText('Name#1234');
+    expect(tagInput).toHaveValue('');
+    expect(screen.queryByText('Your Stats')).not.toBeInTheDocument();
   });
 
   test('shows composition errors and disables submit for an incomplete team', async () => {
@@ -107,5 +110,78 @@ describe('LogMatch', () => {
     await waitFor(() =>
       expect(screen.getByText('Failed to load heroes/maps.')).toBeInTheDocument()
     );
+  });
+
+  test('uploading a scoreboard autofills all players', async () => {
+    parseScoreboard.mockResolvedValue([
+      { team: 'team1', battle_tag: 'IMTHETROOP', hero_name: 'Reinhardt',
+        eliminations: 12, assists: 2, deaths: 9,
+        damage_done: 5953, healing_done: 4047, damage_mitigated: 760 },
+      { team: 'team2', battle_tag: 'SEETHINGS', hero_name: 'Winston',
+        eliminations: 18, assists: 7, deaths: 13,
+        damage_done: 12057, healing_done: 1240, damage_mitigated: 6515 },
+    ]);
+    await renderLogMatch();
+
+    const file = new File(['x'], 'scoreboard.png', { type: 'image/png' });
+    const input = document.querySelector('input[type="file"]');
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await waitFor(() => screen.getByDisplayValue('IMTHETROOP'));
+    expect(screen.getByDisplayValue('SEETHINGS')).toBeInTheDocument();
+    // Reinhardt elims read into the first player's elims field.
+    expect(screen.getByDisplayValue('12')).toBeInTheDocument();
+  });
+
+  test('prominently flags an unidentified hero after autofill', async () => {
+    parseScoreboard.mockResolvedValue([
+      { team: 'team1', battle_tag: 'AAA', hero_name: 'Reinhardt',
+        eliminations: 5, assists: 1, deaths: 2, damage_done: 1, healing_done: 0, damage_mitigated: 1 },
+      { team: 'team2', battle_tag: 'BBB', hero_name: 'NotARealHero',
+        eliminations: 9, assists: 2, deaths: 3, damage_done: 2, healing_done: 0, damage_mitigated: 0 },
+    ]);
+    await renderLogMatch();
+
+    const file = new File(['x'], 'scoreboard.png', { type: 'image/png' });
+    fireEvent.change(document.querySelector('input[type="file"]'), { target: { files: [file] } });
+
+    // Top banner + per-row flags for the hero that couldn't be identified.
+    await waitFor(() => screen.getByText(/Autofill is incomplete/i));
+    expect(screen.getByText(/could not be identified/i)).toBeInTheDocument();
+    expect(screen.getByText('needs hero')).toBeInTheDocument();
+    expect(screen.getByText('Not recognized — pick the hero')).toBeInTheDocument();
+  });
+
+  test('shows a non-closable reading modal while parsing, removed when done', async () => {
+    let resolveParse;
+    parseScoreboard.mockReturnValue(new Promise((resolve) => { resolveParse = resolve; }));
+    await renderLogMatch();
+
+    const file = new File(['x'], 'scoreboard.png', { type: 'image/png' });
+    const input = document.querySelector('input[type="file"]');
+    fireEvent.change(input, { target: { files: [file] } });
+
+    // Modal is visible and offers no way to dismiss it.
+    await waitFor(() => screen.getByText('This can take a few seconds. Please wait.'));
+    expect(screen.queryByRole('button', { name: '✕' })).not.toBeInTheDocument();
+
+    // Finishing the read removes the modal.
+    resolveParse([]);
+    await waitFor(() =>
+      expect(screen.queryByText('This can take a few seconds. Please wait.')).not.toBeInTheDocument()
+    );
+  });
+
+  test('surfaces the backend error message when scoreboard parsing fails', async () => {
+    parseScoreboard.mockRejectedValue({
+      response: { data: { error: 'Scoreboard parsing is not configured. Set the ANTHROPIC_API_KEY environment variable.' } },
+    });
+    await renderLogMatch();
+
+    const file = new File(['x'], 'scoreboard.png', { type: 'image/png' });
+    const input = document.querySelector('input[type="file"]');
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await waitFor(() => screen.getByText(/not configured/i));
   });
 });

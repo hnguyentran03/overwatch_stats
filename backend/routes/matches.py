@@ -1,9 +1,14 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, current_app
 from models import Match, BannedHero, Hero, Map, Player, MatchPlayer, OutcomeEnum, TeamEnum
 from utils.db import get_db
+from utils.scoreboard import parse_scoreboard, ScoreboardConfigError
+from utils.rate_limit import SlidingWindowLimiter
 from datetime import datetime
 
 matches_bp = Blueprint('matches', __name__)
+
+# Cap the paid scoreboard-parsing calls at 3 per rolling 24 hours (process-wide).
+_scoreboard_limiter = SlidingWindowLimiter(max_calls=3, window_seconds=24 * 60 * 60)
 
 
 @matches_bp.route('/heroes', methods=['GET'])
@@ -137,6 +142,63 @@ def create_match():
         return jsonify({'error': str(e)}), 500
     finally:
         session.close()
+
+
+ALLOWED_IMAGE_TYPES = {"image/png", "image/jpeg", "image/webp", "image/gif"}
+MAX_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB
+
+
+@matches_bp.route('/matches/parse_scoreboard', methods=['POST'])
+def parse_scoreboard_route():
+    upload = request.files.get('image')
+    if upload is None or upload.filename == '':
+        return jsonify({'error': 'No image uploaded'}), 400
+
+    media_type = upload.mimetype
+    if media_type not in ALLOWED_IMAGE_TYPES:
+        return jsonify({'error': 'Unsupported image type'}), 400
+
+    image_bytes = upload.read()
+    if not image_bytes:
+        return jsonify({'error': 'Empty image'}), 400
+    if len(image_bytes) > MAX_IMAGE_BYTES:
+        return jsonify({'error': 'Image too large (max 10 MB)'}), 400
+
+    allowed, retry_after = _scoreboard_limiter.allow()
+    if not allowed:
+        hours = retry_after // 3600 + 1
+        resp = jsonify({
+            'error': f'Daily scoreboard limit reached (3 per day). '
+                     f'Try again in about {hours} hour{"s" if hours != 1 else ""}.'
+        })
+        resp.status_code = 429
+        resp.headers['Retry-After'] = str(retry_after)
+        return resp
+
+    db = get_db()
+    session = db.get_session()
+    try:
+        heroes = session.query(Hero).order_by(Hero.role, Hero.hero_name).all()
+        hero_names_by_role = {}
+        for h in heroes:
+            hero_names_by_role.setdefault(h.role.value, []).append(h.hero_name)
+    finally:
+        session.close()
+
+    try:
+        players = parse_scoreboard(image_bytes, media_type, hero_names_by_role)
+    except ScoreboardConfigError:
+        # No model call was made — don't count it against the daily limit.
+        _scoreboard_limiter.refund()
+        return jsonify({
+            'error': 'Scoreboard parsing is not configured. '
+                     'Set the ANTHROPIC_API_KEY environment variable.'
+        }), 503
+    except Exception:
+        current_app.logger.exception('Scoreboard parsing failed')
+        return jsonify({'error': 'Failed to read the scoreboard image'}), 502
+
+    return jsonify({'players': players}), 200
 
 
 @matches_bp.route('/matches', methods=['GET'])

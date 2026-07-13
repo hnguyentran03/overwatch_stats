@@ -1526,3 +1526,135 @@ body {
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
+.lm-scoreboard-upload {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.lm-scoreboard-btn {
+  display: inline-block;
+  padding: 0.6rem 1rem;
+  background: #2f80ed;
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.lm-scoreboard-btn input:disabled {
+  cursor: default;
+}
+
+.lm-scoreboard-hint {
+  font-size: 0.85rem;
+  color: #888;
+  max-width: 32rem;
+}
+
+.lm-autofilled {
+  box-shadow: inset 4px 0 0 #f2c94c;
+}
+
+/* ── Scoreboard "reading" blocking modal ── */
+.lm-parsing-modal {
+  max-width: 360px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.lm-parsing-spinner {
+  width: 44px;
+  height: 44px;
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: lm-spin 0.8s linear infinite;
+}
+
+@keyframes lm-spin {
+  to { transform: rotate(360deg); }
+}
+
+.lm-parsing-text {
+  margin: 0;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.lm-parsing-sub {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #888;
+}
+
+/* ── Autofill incompleteness warnings ── */
+.lm-autofill-warning {
+  margin: 0 0 16px;
+  padding: 14px 18px;
+  background: rgba(242, 153, 74, 0.12);
+  border: 2px solid #f2994a;
+  border-radius: 8px;
+}
+
+.lm-autofill-warning-title {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #f2994a;
+  margin-bottom: 6px;
+}
+
+.lm-autofill-warning-line {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-top: 4px;
+}
+
+.lm-autofill-warning-critical {
+  font-weight: 600;
+  color: #eb5757;
+}
+
+/* A whole player row whose hero could not be identified */
+.lm-autofilled-incomplete {
+  box-shadow: inset 4px 0 0 #eb5757;
+  border-color: #eb5757 !important;
+}
+
+.lm-row-incomplete-badge {
+  margin-left: 10px;
+  padding: 2px 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #fff;
+  background: #eb5757;
+  border-radius: 10px;
+  vertical-align: middle;
+}
+
+/* The hero select that still needs a manual pick */
+.lm-field-needs-hero .lm-select,
+.lm-field-needs-hero .lm-no-roles {
+  border: 2px solid #eb5757;
+  border-radius: 6px;
+}
+
+.lm-field-needs-hero label {
+  color: #eb5757;
+  font-weight: 700;
+}
+
+.lm-needs-hero-note {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #eb5757;
+}

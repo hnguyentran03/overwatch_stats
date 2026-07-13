@@ -1,6 +1,9 @@
 """Integration tests for the matches blueprint."""
 import os
 import sys
+import io
+
+import pytest
 
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BACKEND_DIR not in sys.path:
@@ -220,3 +223,78 @@ class TestBannedHeroes:
         assert len(body["team1_bans"]) == 1
         assert body["team1_bans"][0]["hero_name"] == "Sombra"
         assert body["team2_bans"] == []
+
+
+class TestParseScoreboard:
+    _PNG = b"\x89PNG\r\n\x1a\n" + b"0" * 32  # minimal non-empty fake PNG
+
+    @pytest.fixture(autouse=True)
+    def _reset_limiter(self):
+        # The daily limiter is module-level state shared across requests; reset it
+        # before each test so counts don't leak between tests.
+        from routes.matches import _scoreboard_limiter
+        _scoreboard_limiter.reset()
+        yield
+        _scoreboard_limiter.reset()
+
+    def _upload(self, client, monkeypatch, fake):
+        monkeypatch.setattr("routes.matches.parse_scoreboard", fake)
+        return client.post(
+            "/api/matches/parse_scoreboard",
+            data={"image": (io.BytesIO(self._PNG), "scoreboard.png")},
+            content_type="multipart/form-data",
+        )
+
+    def test_returns_parsed_players(self, client, monkeypatch):
+        players = [{
+            "team": "team1", "battle_tag": "IMTHETROOP", "hero_name": "Reinhardt",
+            "eliminations": 12, "assists": 2, "deaths": 9,
+            "damage_done": 5953, "healing_done": 4047, "damage_mitigated": 760,
+        }]
+        resp = self._upload(client, monkeypatch, lambda *a, **k: players)
+        assert resp.status_code == 200
+        assert resp.get_json() == {"players": players}
+
+    def test_missing_image_returns_400(self, client):
+        resp = client.post(
+            "/api/matches/parse_scoreboard",
+            data={}, content_type="multipart/form-data",
+        )
+        assert resp.status_code == 400
+
+    def test_missing_api_key_returns_503(self, client, monkeypatch):
+        from utils.scoreboard import ScoreboardConfigError
+
+        def boom(*a, **k):
+            raise ScoreboardConfigError("no key")
+
+        resp = self._upload(client, monkeypatch, boom)
+        assert resp.status_code == 503
+
+    def test_model_failure_returns_502(self, client, monkeypatch):
+        def boom(*a, **k):
+            raise RuntimeError("model exploded")
+
+        resp = self._upload(client, monkeypatch, boom)
+        assert resp.status_code == 502
+
+    def test_fourth_request_in_window_is_rate_limited(self, client, monkeypatch):
+        ok = lambda *a, **k: []
+        for _ in range(3):
+            assert self._upload(client, monkeypatch, ok).status_code == 200
+        resp = self._upload(client, monkeypatch, ok)
+        assert resp.status_code == 429
+        assert "Retry-After" in resp.headers
+        assert "3 per day" in resp.get_json()["error"]
+
+    def test_config_error_does_not_consume_the_limit(self, client, monkeypatch):
+        from utils.scoreboard import ScoreboardConfigError
+
+        def no_key(*a, **k):
+            raise ScoreboardConfigError("no key")
+
+        # Three misconfigured (503) attempts must not exhaust the daily quota...
+        for _ in range(3):
+            assert self._upload(client, monkeypatch, no_key).status_code == 503
+        # ...so a real call still succeeds.
+        assert self._upload(client, monkeypatch, lambda *a, **k: []).status_code == 200
