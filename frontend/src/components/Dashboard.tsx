@@ -166,7 +166,6 @@ const Dashboard = () => {
           <h1>Overwatch Statistics</h1>
         </header>
         <LogMatch
-          defaultBattleTag={searchedTag}
           onCancel={() => setShowLogMatch(false)}
           onSuccess={(matchId: number) => {
             setShowLogMatch(false);

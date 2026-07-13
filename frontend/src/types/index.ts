@@ -282,3 +282,20 @@ export interface CreateMatchResponse {
   match_id: number;
   message: string;
 }
+
+// ── POST /matches/parse_scoreboard (scoreboard autofill) ──
+// One player parsed from a scoreboard screenshot. Mirrors the backend
+// ScoreboardPlayer model in backend/utils/scoreboard.py. hero_name is "" when
+// the hero could not be confidently identified; final_blows/time_played are not
+// present on a scoreboard.
+export interface ScoreboardPlayer {
+  team: Team;
+  battle_tag: string;
+  hero_name: string;
+  eliminations: number;
+  assists: number;
+  deaths: number;
+  damage_done: number;
+  healing_done: number;
+  damage_mitigated: number;
+}

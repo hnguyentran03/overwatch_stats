@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { getHeroes, getMaps, createMatch } from '../api/client';
+import { getHeroes, getMaps, createMatch, parseScoreboard } from '../api/client';
 import type { Hero, GameMap, Role, Team, CreateMatchPayload } from '../types';
 
 interface HeroSlotForm {
@@ -30,7 +30,6 @@ interface MatchForm {
 }
 interface TeamComp { tank: number; dps: number; support: number; total: number; }
 interface LogMatchProps {
-  defaultBattleTag?: string;
   onSuccess: (matchId: number) => void;
   onCancel: () => void;
 }
@@ -71,13 +70,15 @@ const ROLE_LABEL: Record<Role, string>  = { tank: 'T', dps: 'D', support: 'S' };
 const MAX_BAN_TOTAL = 2;
 const MAX_BAN_ROLE  = 2;
 
-const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }: LogMatchProps) => {
+const LogMatch = ({ onSuccess, onCancel }: LogMatchProps) => {
   const [heroes, setHeroes] = useState<Hero[]>([]);
   const [maps, setMaps] = useState<GameMap[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showBans, setShowBans] = useState(false);
+  const [parsing, setParsing] = useState(false);
+  const [autofilledRows, setAutofilledRows] = useState<Set<number>>(() => new Set());
 
   const [form, setForm] = useState<MatchForm>({
     date_time: now(),
@@ -85,7 +86,7 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }: LogMatchProps) => {
     outcome: 'win',
     final_score: '',
     duration: '',
-    players: [{ ...EMPTY_PLAYER, battle_tag: defaultBattleTag || '' }],
+    players: [{ ...EMPTY_PLAYER }],
     bans: { team1: [], team2: [] },
   });
 
@@ -191,6 +192,15 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }: LogMatchProps) => {
   const allCompErrors = [...getCompErrors('team1'), ...getCompErrors('team2')];
   const canSubmit = allCompErrors.length === 0;
 
+  // ── autofill review state ──
+  const didAutofill = autofilledRows.size > 0;
+  // True for a primary hero slot that the autofill left empty (hero not recognized).
+  const heroNeedsPick = (pi: number, hi: number, heroSlot: HeroSlotForm): boolean =>
+    hi === 0 && autofilledRows.has(pi) && !heroSlot.hero_name;
+  const autofillMissingHeroes = form.players.filter(
+    (p, i) => autofilledRows.has(i) && !p.heroes[0]?.hero_name
+  ).length;
+
   // ── form helpers ──
 
   const setMatchField = <K extends keyof MatchForm>(field: K, value: MatchForm[K]) =>
@@ -270,6 +280,43 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }: LogMatchProps) => {
     });
   };
 
+  // ── scoreboard autofill ──
+
+  const handleScoreboardUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';            // allow re-uploading the same file
+    if (!file) return;
+
+    setError(null);
+    setParsing(true);
+    try {
+      const parsed = await parseScoreboard(file);
+      const players: PlayerForm[] = parsed.map((p) => ({
+        battle_tag: p.battle_tag,
+        team: p.team === 'team2' ? 'team2' : 'team1',
+        heroes: [{
+          ...EMPTY_HERO_SLOT,
+          hero_name: heroRoleMap[p.hero_name] ? p.hero_name : '',
+          eliminations: String(p.eliminations ?? ''),
+          assists: String(p.assists ?? ''),
+          deaths: String(p.deaths ?? ''),
+          damage_done: String(p.damage_done ?? ''),
+          healing_done: String(p.healing_done ?? ''),
+          damage_mitigated: String(p.damage_mitigated ?? ''),
+        }],
+      }));
+      setForm((f) => ({ ...f, players }));
+      setAutofilledRows(new Set(players.map((_, i) => i)));
+    } catch (err: any) {
+      setError(
+        err.response?.data?.error ||
+        'Could not read that scoreboard. Try another screenshot or enter stats manually.'
+      );
+    } finally {
+      setParsing(false);
+    }
+  };
+
   // ── submit ──
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -322,9 +369,16 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }: LogMatchProps) => {
   // availableRoles: only show these role groups (for primary hero)
   // requiredRole: only show this one role (for swap heroes)
   const HeroSelect = ({ value, onChange, availableRoles = null, requiredRole = null }: HeroSelectProps) => {
-    const roles: Role[] = requiredRole
+    const baseRoles: Role[] = requiredRole
       ? [requiredRole]
       : (availableRoles || (['tank', 'dps', 'support'] as Role[]));
+    // Always include the currently-selected hero's role, so an autofilled or
+    // already-chosen hero never renders as blank when its role slot reads as
+    // "full" (e.g. after a scoreboard autofill fills every role).
+    const valueRole = heroRoleMap[value];
+    const roles: Role[] = valueRole && !baseRoles.includes(valueRole)
+      ? [...baseRoles, valueRole]
+      : baseRoles;
 
     if (roles.length === 0) {
       return (
@@ -373,6 +427,16 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }: LogMatchProps) => {
 
   return (
     <div className="log-match">
+      {parsing && (
+        <div className="modal-backdrop lm-parsing-backdrop" role="dialog" aria-modal="true" aria-label="Reading scoreboard">
+          <div className="modal-content lm-parsing-modal">
+            <div className="lm-parsing-spinner" />
+            <p className="lm-parsing-text">Reading scoreboard…</p>
+            <p className="lm-parsing-sub">This can take a few seconds. Please wait.</p>
+          </div>
+        </div>
+      )}
+
       <div className="lm-header">
         <h2>Log Match</h2>
         <button className="lm-cancel-btn" onClick={onCancel} type="button">
@@ -388,7 +452,41 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }: LogMatchProps) => {
         </div>
       )}
 
+      {didAutofill && (
+        <div className="lm-autofill-warning">
+          <div className="lm-autofill-warning-title">⚠ Autofill is incomplete — review before saving</div>
+          {autofillMissingHeroes > 0 && (
+            <div className="lm-autofill-warning-line lm-autofill-warning-critical">
+              {autofillMissingHeroes} hero{autofillMissingHeroes > 1 ? 'es' : ''} could not be identified —
+              pick {autofillMissingHeroes > 1 ? 'them' : 'it'} in the highlighted slot{autofillMissingHeroes > 1 ? 's' : ''} below.
+            </div>
+          )}
+          <div className="lm-autofill-warning-line">
+            The scoreboard doesn't include <strong>final blows</strong>, <strong>time played</strong>,
+            or battle-tag <strong>#IDs</strong> (e.g. <code>#1234</code>) — fill these in yourself.
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="lm-form">
+
+        {/* ── Scoreboard Upload ── */}
+        <section className="lm-section lm-scoreboard-upload">
+          <label className="lm-scoreboard-btn">
+            {parsing ? 'Reading scoreboard…' : '📷 Upload Scoreboard'}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleScoreboardUpload}
+              disabled={parsing}
+              style={{ display: 'none' }}
+            />
+          </label>
+          <span className="lm-scoreboard-hint">
+            Autofills heroes and stats for both teams. Review highlighted rows —
+            final blows, time played, and battle-tag IDs (#1234) still need you.
+          </span>
+        </section>
 
         {/* ── Match Info ── */}
         <section className="lm-section">
@@ -474,10 +572,13 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }: LogMatchProps) => {
           const hasPrimaryHero = !!player.heroes[0]?.hero_name;
 
           return (
-            <section key={pi} className={`lm-section lm-player-section${compErrors.length ? ' lm-section-invalid' : ''}`}>
+            <section key={pi} className={`lm-section lm-player-section${compErrors.length ? ' lm-section-invalid' : ''}${autofilledRows.has(pi) ? ' lm-autofilled' : ''}${autofilledRows.has(pi) && !player.heroes[0]?.hero_name ? ' lm-autofilled-incomplete' : ''}`}>
               <div className="lm-player-header">
                 <h3 className="lm-section-title">
-                  {pi === 0 ? 'Your Stats' : `Player ${pi + 1}`}
+                  {`Player ${pi + 1}`}
+                  {autofilledRows.has(pi) && !player.heroes[0]?.hero_name && (
+                    <span className="lm-row-incomplete-badge">needs hero</span>
+                  )}
                 </h3>
                 <TeamCompBadge team={player.team} />
                 {pi > 0 && (
@@ -542,8 +643,8 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }: LogMatchProps) => {
                   </div>
 
                   <div className="lm-hero-row">
-                    <div className="lm-field lm-field-hero">
-                      <label>Hero</label>
+                    <div className={`lm-field lm-field-hero${heroNeedsPick(pi, hi, heroSlot) ? ' lm-field-needs-hero' : ''}`}>
+                      <label>Hero{heroNeedsPick(pi, hi, heroSlot) ? ' ⚠' : ''}</label>
                       {hi === 0 ? (
                         <HeroSelect
                           value={heroSlot.hero_name}
@@ -556,6 +657,9 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }: LogMatchProps) => {
                           onChange={v => setHeroField(pi, hi, 'hero_name', v)}
                           requiredRole={primaryRole}
                         />
+                      )}
+                      {heroNeedsPick(pi, hi, heroSlot) && (
+                        <span className="lm-needs-hero-note">Not recognized — pick the hero</span>
                       )}
                     </div>
                     <div className="lm-field">

@@ -3,3 +3,5 @@ SQLAlchemy==2.0.23
 psycopg2-binary==2.9.9
 Flask-CORS==4.0.0
 python-dateutil==2.8.2
+anthropic==0.109.2
+Pillow==12.2.0

@@ -14,6 +14,7 @@ import type {
   GameMap,
   CreateMatchPayload,
   CreateMatchResponse,
+  ScoreboardPlayer,
   Role,
 } from '../types';
 
@@ -139,6 +140,15 @@ export const createMatch = async (
 ): Promise<CreateMatchResponse> => {
   const response = await apiClient.post('/matches', matchData);
   return response.data;
+};
+
+export const parseScoreboard = async (file: File): Promise<ScoreboardPlayer[]> => {
+  const formData = new FormData();
+  formData.append('image', file);
+  const response = await apiClient.post('/matches/parse_scoreboard', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data.players;
 };
 
 export default apiClient;
