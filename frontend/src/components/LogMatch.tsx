@@ -1,7 +1,48 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import axios from 'axios';
 import { getHeroes, getMaps, createMatch } from '../api/client';
+import type { Hero, GameMap, Role, Team, MapType, CreateMatchPayload } from '../types';
 
-const EMPTY_HERO_SLOT = {
+interface HeroSlotForm {
+  hero_name: string;
+  time_played: string;
+  eliminations: string;
+  final_blows: string;
+  assists: string;
+  deaths: string;
+  damage_done: string;
+  healing_done: string;
+  damage_mitigated: string;
+}
+interface PlayerForm {
+  battle_tag: string;
+  team: Team;
+  heroes: HeroSlotForm[];
+}
+interface MatchForm {
+  date_time: string;
+  map_id: number | string;
+  outcome: 'win' | 'loss' | 'draw';
+  final_score: string;
+  duration: string;
+  players: PlayerForm[];
+  bans: { team1: string[]; team2: string[] };
+}
+interface TeamComp { tank: number; dps: number; support: number; total: number; }
+interface LogMatchProps {
+  defaultBattleTag?: string;
+  onSuccess: (matchId: number) => void;
+  onCancel: () => void;
+}
+
+interface HeroSelectProps {
+  value: string;
+  onChange: (value: string) => void;
+  availableRoles?: Role[] | null;
+  requiredRole?: Role | null;
+}
+
+const EMPTY_HERO_SLOT: HeroSlotForm = {
   hero_name: '',
   time_played: '',
   eliminations: '',
@@ -13,32 +54,32 @@ const EMPTY_HERO_SLOT = {
   damage_mitigated: '',
 };
 
-const EMPTY_PLAYER = {
+const EMPTY_PLAYER: PlayerForm = {
   battle_tag: '',
   team: 'team1',
   heroes: [{ ...EMPTY_HERO_SLOT }],
 };
 
-const now = () => {
+const now = (): string => {
   const d = new Date();
   d.setSeconds(0, 0);
   return d.toISOString().slice(0, 16);
 };
 
-const ROLE_LIMITS = { tank: 1, dps: 2, support: 2 };
-const ROLE_LABEL  = { tank: 'T', dps: 'D', support: 'S' };
+const ROLE_LIMITS: Record<Role, number> = { tank: 1, dps: 2, support: 2 };
+const ROLE_LABEL: Record<Role, string>  = { tank: 'T', dps: 'D', support: 'S' };
 const MAX_BAN_TOTAL = 2;
 const MAX_BAN_ROLE  = 2;
 
-const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }) => {
-  const [heroes, setHeroes] = useState([]);
-  const [maps, setMaps] = useState([]);
+const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }: LogMatchProps) => {
+  const [heroes, setHeroes] = useState<Hero[]>([]);
+  const [maps, setMaps] = useState<GameMap[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [showBans, setShowBans] = useState(false);
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<MatchForm>({
     date_time: now(),
     map_id: '',
     outcome: 'win',
@@ -62,12 +103,12 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }) => {
   // ── lookups ──
 
   const heroRoleMap = useMemo(
-    () => heroes.reduce((acc, h) => { acc[h.hero_name] = h.role; return acc; }, {}),
+    () => heroes.reduce((acc: Record<string, Role>, h) => { acc[h.hero_name] = h.role; return acc; }, {}),
     [heroes]
   );
 
   const herosByRole = useMemo(() =>
-    heroes.reduce((acc, h) => {
+    heroes.reduce((acc: Record<string, Hero[]>, h) => {
       if (!acc[h.role]) acc[h.role] = [];
       acc[h.role].push(h);
       return acc;
@@ -76,7 +117,7 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }) => {
   );
 
   const mapsByType = useMemo(() =>
-    maps.reduce((acc, m) => {
+    maps.reduce((acc: Record<string, GameMap[]>, m) => {
       if (!acc[m.map_type]) acc[m.map_type] = [];
       acc[m.map_type].push(m);
       return acc;
@@ -87,8 +128,8 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }) => {
   // ── team composition ──
 
   // Count roles for a team, optionally excluding one player index
-  const getTeamComp = (team, excludeIdx = -1) => {
-    const counts = { tank: 0, dps: 0, support: 0, total: 0 };
+  const getTeamComp = (team: Team, excludeIdx = -1): TeamComp => {
+    const counts: TeamComp = { tank: 0, dps: 0, support: 0, total: 0 };
     form.players.forEach((p, i) => {
       if (p.team !== team || i === excludeIdx) return;
       counts.total++;
@@ -99,13 +140,13 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }) => {
   };
 
   // Roles still open on a team when excluding player pi
-  const getAvailableRoles = (team, pi) => {
+  const getAvailableRoles = (team: Team, pi: number): Role[] => {
     const comp = getTeamComp(team, pi);
-    return ['tank', 'dps', 'support'].filter(role => comp[role] < ROLE_LIMITS[role]);
+    return (['tank', 'dps', 'support'] as Role[]).filter(role => comp[role] < ROLE_LIMITS[role]);
   };
 
   // Whether switching player pi to targetTeam is allowed
-  const canSwitchToTeam = (pi, targetTeam) => {
+  const canSwitchToTeam = (pi: number, targetTeam: Team): boolean => {
     const player = form.players[pi];
     if (player.team === targetTeam) return true;
     const comp = getTeamComp(targetTeam);
@@ -115,10 +156,10 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }) => {
     return true;
   };
 
-  const getCompErrors = (team) => {
+  const getCompErrors = (team: Team): string[] => {
     const comp = getTeamComp(team);
     const label = team === 'team1' ? 'Team 1' : 'Team 2';
-    const errs = [];
+    const errs: string[] = [];
     if (comp.total > 5)     errs.push(`${label}: too many players (${comp.total}/5)`);
     if (comp.tank !== 1)    errs.push(`${label}: needs 1 Tank (has ${comp.tank})`);
     if (comp.dps !== 2)     errs.push(`${label}: needs 2 Damage (has ${comp.dps})`);
@@ -128,8 +169,8 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }) => {
 
   // ── ban helpers ──
 
-  const getBanComp = (team) => {
-    const roleCounts = { tank: 0, dps: 0, support: 0 };
+  const getBanComp = (team: Team) => {
+    const roleCounts: Record<Role, number> = { tank: 0, dps: 0, support: 0 };
     form.bans[team].forEach(name => {
       const role = heroRoleMap[name];
       if (role) roleCounts[role]++;
@@ -137,7 +178,7 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }) => {
     return { total: form.bans[team].length, ...roleCounts };
   };
 
-  const isBanDisabled = (team, heroName) => {
+  const isBanDisabled = (team: Team, heroName: string): boolean => {
     const selected = form.bans[team].includes(heroName);
     if (selected) return false;
     const banComp = getBanComp(team);
@@ -152,17 +193,17 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }) => {
 
   // ── form helpers ──
 
-  const setMatchField = (field, value) =>
+  const setMatchField = <K extends keyof MatchForm>(field: K, value: MatchForm[K]) =>
     setForm(f => ({ ...f, [field]: value }));
 
-  const setPlayerField = (pi, field, value) =>
+  const setPlayerField = (pi: number, field: keyof PlayerForm, value: string | Team) =>
     setForm(f => ({
       ...f,
       players: f.players.map((p, i) => i === pi ? { ...p, [field]: value } : p),
     }));
 
   // Changing the PRIMARY hero: also wipe swap slots if the role changes
-  const handlePrimaryHeroChange = (pi, newHeroName) => {
+  const handlePrimaryHeroChange = (pi: number, newHeroName: string) => {
     setForm(f => {
       const player = f.players[pi];
       const oldRole = heroRoleMap[player.heroes[0]?.hero_name];
@@ -184,7 +225,7 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }) => {
     });
   };
 
-  const setHeroField = (pi, hi, field, value) =>
+  const setHeroField = (pi: number, hi: number, field: keyof HeroSlotForm, value: string) =>
     setForm(f => ({
       ...f,
       players: f.players.map((p, i) => {
@@ -193,7 +234,7 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }) => {
       }),
     }));
 
-  const addHeroSlot = (pi) =>
+  const addHeroSlot = (pi: number) =>
     setForm(f => ({
       ...f,
       players: f.players.map((p, i) =>
@@ -201,7 +242,7 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }) => {
       ),
     }));
 
-  const removeHeroSlot = (pi, hi) =>
+  const removeHeroSlot = (pi: number, hi: number) =>
     setForm(f => ({
       ...f,
       players: f.players.map((p, i) =>
@@ -215,10 +256,10 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }) => {
       players: [...f.players, { ...EMPTY_PLAYER, heroes: [{ ...EMPTY_HERO_SLOT }] }],
     }));
 
-  const removePlayer = (pi) =>
+  const removePlayer = (pi: number) =>
     setForm(f => ({ ...f, players: f.players.filter((_, i) => i !== pi) }));
 
-  const toggleBan = (team, heroName) => {
+  const toggleBan = (team: Team, heroName: string) => {
     if (isBanDisabled(team, heroName)) return;
     setForm(f => {
       const current = f.bans[team];
@@ -231,15 +272,15 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }) => {
 
   // ── submit ──
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
     setError(null);
     setSubmitting(true);
 
-    const payload = {
+    const payload: CreateMatchPayload = {
       date_time: form.date_time,
-      map_id: parseInt(form.map_id),
+      map_id: parseInt(String(form.map_id)),
       outcome: form.outcome,
       final_score: form.final_score.trim(),
       duration: form.duration !== '' ? parseFloat(form.duration) : 0,
@@ -269,7 +310,8 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }) => {
       const result = await createMatch(payload);
       onSuccess(result.match_id);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to save match.');
+      const message = axios.isAxiosError<{ error?: string }>(err) ? err.response?.data?.error : undefined;
+      setError(message || 'Failed to save match.');
     } finally {
       setSubmitting(false);
     }
@@ -279,10 +321,10 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }) => {
 
   // availableRoles: only show these role groups (for primary hero)
   // requiredRole: only show this one role (for swap heroes)
-  const HeroSelect = ({ value, onChange, availableRoles = null, requiredRole = null }) => {
-    const roles = requiredRole
+  const HeroSelect = ({ value, onChange, availableRoles = null, requiredRole = null }: HeroSelectProps) => {
+    const roles: Role[] = requiredRole
       ? [requiredRole]
-      : (availableRoles || ['tank', 'dps', 'support']);
+      : (availableRoles || (['tank', 'dps', 'support'] as Role[]));
 
     if (roles.length === 0) {
       return (
@@ -306,7 +348,7 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }) => {
     );
   };
 
-  const TeamCompBadge = ({ team }) => {
+  const TeamCompBadge = ({ team }: { team: Team }) => {
     const comp = getTeamComp(team);
     const errs = getCompErrors(team);
     return (
@@ -384,7 +426,7 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }) => {
             <div className="lm-field">
               <label>Outcome</label>
               <div className="lm-outcome-btns">
-                {['win', 'loss', 'draw'].map(o => (
+                {(['win', 'loss', 'draw'] as const).map(o => (
                   <button
                     key={o}
                     type="button"
@@ -460,7 +502,7 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }) => {
                 <div className="lm-field">
                   <label>Team Side</label>
                   <div className="lm-team-btns">
-                    {['team1', 'team2'].map(t => {
+                    {(['team1', 'team2'] as const).map(t => {
                       const allowed = canSwitchToTeam(pi, t);
                       const active = player.team === t;
                       let title = '';
@@ -597,7 +639,7 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }) => {
 
           {showBans && (
             <div className="lm-bans">
-              {['team1', 'team2'].map(team => {
+              {(['team1', 'team2'] as const).map(team => {
                 const banComp = getBanComp(team);
                 const atMax = banComp.total >= MAX_BAN_TOTAL;
                 return (
@@ -608,7 +650,7 @@ const LogMatch = ({ defaultBattleTag, onSuccess, onCancel }) => {
                         {banComp.total}/{MAX_BAN_TOTAL}
                       </span>
                     </h4>
-                    {['tank', 'dps', 'support'].map(role => (
+                    {(['tank', 'dps', 'support'] as const).map(role => (
                       <div key={role} className="lm-bans-role-group">
                         <span className={`lm-bans-role-label lm-role-${role}`}>{role.toUpperCase()}</span>
                         <div className="lm-bans-grid">
