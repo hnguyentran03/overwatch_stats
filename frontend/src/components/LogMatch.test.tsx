@@ -20,15 +20,15 @@ const MAPS = [
 ];
 
 beforeEach(() => {
-  getHeroes.mockReset();
-  getMaps.mockReset();
-  createMatch.mockReset();
-  getHeroes.mockResolvedValue(HEROES);
-  getMaps.mockResolvedValue(MAPS);
-  createMatch.mockResolvedValue({ match_id: 1 });
+  (getHeroes as jest.Mock).mockReset();
+  (getMaps as jest.Mock).mockReset();
+  (createMatch as jest.Mock).mockReset();
+  (getHeroes as jest.Mock).mockResolvedValue(HEROES);
+  (getMaps as jest.Mock).mockResolvedValue(MAPS);
+  (createMatch as jest.Mock).mockResolvedValue({ match_id: 1 });
 });
 
-const renderLogMatch = async (props = {}) => {
+const renderLogMatch = async (props: { defaultBattleTag?: string } = {}) => {
   const onSuccess = jest.fn();
   const onCancel = jest.fn();
   render(<LogMatch onSuccess={onSuccess} onCancel={onCancel} {...props} />);
@@ -101,8 +101,8 @@ describe('LogMatch', () => {
   });
 
   test('shows error when heroes/maps fail to load', async () => {
-    getHeroes.mockRejectedValue(new Error('boom'));
-    getMaps.mockRejectedValue(new Error('boom'));
+    (getHeroes as jest.Mock).mockRejectedValue(new Error('boom'));
+    (getMaps as jest.Mock).mockRejectedValue(new Error('boom'));
     render(<LogMatch onSuccess={jest.fn()} onCancel={jest.fn()} />);
     await waitFor(() =>
       expect(screen.getByText('Failed to load heroes/maps.')).toBeInTheDocument()

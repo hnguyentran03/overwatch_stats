@@ -18,15 +18,16 @@ import {
   getMatchDetails,
   createMatch,
 } from './client';
+import type { CreateMatchPayload } from '../types';
 
 // All exported helpers share the single mocked instance.
 const instance = axios.create();
 
 beforeEach(() => {
-  instance.get.mockReset();
-  instance.post.mockReset();
-  instance.get.mockResolvedValue({ data: { ok: true } });
-  instance.post.mockResolvedValue({ data: { match_id: 7 } });
+  (instance.get as jest.Mock).mockReset();
+  (instance.post as jest.Mock).mockReset();
+  (instance.get as jest.Mock).mockResolvedValue({ data: { ok: true } });
+  (instance.post as jest.Mock).mockResolvedValue({ data: { match_id: 7 } });
 });
 
 describe('battle tag encoding', () => {
@@ -37,7 +38,7 @@ describe('battle tag encoding', () => {
 
   test('encodes special characters in win_percentage/hero path', async () => {
     await getWinPercentageByHero('Name With Space#9999');
-    const [url] = instance.get.mock.calls[0];
+    const [url] = (instance.get as jest.Mock).mock.calls[0];
     expect(url).toContain('Name%20With%20Space%239999');
   });
 });
@@ -81,13 +82,21 @@ describe('query params', () => {
 
 describe('return values', () => {
   test('getMatchDetails returns response.data', async () => {
-    instance.get.mockResolvedValue({ data: { match_id: 42 } });
+    (instance.get as jest.Mock).mockResolvedValue({ data: { match_id: 42 } });
     const result = await getMatchDetails(42);
     expect(result).toEqual({ match_id: 42 });
   });
 
   test('createMatch posts payload and returns data', async () => {
-    const payload = { map_id: 1, outcome: 'win' };
+    const payload: CreateMatchPayload = {
+      date_time: '2026-01-01T00:00:00',
+      map_id: 1,
+      outcome: 'win',
+      final_score: '2-1',
+      duration: 15,
+      players: [],
+      bans: { team1: [], team2: [] },
+    };
     const result = await createMatch(payload);
     expect(instance.post).toHaveBeenCalledWith('/matches', payload);
     expect(result).toEqual({ match_id: 7 });

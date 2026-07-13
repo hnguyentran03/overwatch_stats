@@ -1,15 +1,16 @@
 import React from 'react';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import MatchHistory from './MatchHistory';
+import type { MatchOutcome } from '../types';
 
-const makeMatch = (overrides = {}) => ({
+const makeMatch = (overrides: Partial<MatchOutcome> = {}): MatchOutcome => ({
   match_id: 1,
   date_time: '2026-01-15T14:30:00',
   map_name: "King's Row",
   map_type: 'Hybrid',
   primary_hero: 'Ana',
   primary_hero_role: 'support',
-  heroes_played: [{ hero_name: 'Ana' }],
+  heroes_played: [{ hero_name: 'Ana', hero_role: 'support', time_played: 15.5 }],
   outcome: 'win',
   final_score: '2-1',
   duration: 15.5,
@@ -18,6 +19,7 @@ const makeMatch = (overrides = {}) => ({
   deaths: 4,
   damage_done: 5000,
   healing_done: 3000,
+  damage_mitigated: 0,
   ...overrides,
 });
 
@@ -28,7 +30,7 @@ describe('MatchHistory', () => {
   });
 
   test('shows empty state when matches is undefined', () => {
-    render(<MatchHistory matches={undefined} />);
+    render(<MatchHistory matches={undefined as unknown as MatchOutcome[]} />);
     expect(screen.getByText('No match history available.')).toBeInTheDocument();
   });
 
@@ -62,7 +64,14 @@ describe('MatchHistory', () => {
   test('shows hero swap badge when more than one hero played', () => {
     render(
       <MatchHistory
-        matches={[makeMatch({ heroes_played: [{ hero_name: 'Ana' }, { hero_name: 'Kiriko' }] })]}
+        matches={[
+          makeMatch({
+            heroes_played: [
+              { hero_name: 'Ana', hero_role: 'support', time_played: 10 },
+              { hero_name: 'Kiriko', hero_role: 'support', time_played: 5.5 },
+            ],
+          }),
+        ]}
       />
     );
     expect(screen.getByText('+1')).toBeInTheDocument();
@@ -71,13 +80,13 @@ describe('MatchHistory', () => {
   test('shows dash for zero healing', () => {
     render(<MatchHistory matches={[makeMatch({ healing_done: 0 })]} />);
     const row = screen.getByText("King's Row").closest('tr');
-    expect(within(row).getByText('-')).toBeInTheDocument();
+    expect(within(row as HTMLElement).getByText('-')).toBeInTheDocument();
   });
 
   test('calls onMatchClick with match id when row clicked', () => {
     const onMatchClick = jest.fn();
     render(<MatchHistory matches={[makeMatch({ match_id: 99 })]} onMatchClick={onMatchClick} />);
-    fireEvent.click(screen.getByText("King's Row").closest('tr'));
+    fireEvent.click(screen.getByText("King's Row").closest('tr') as HTMLElement);
     expect(onMatchClick).toHaveBeenCalledWith(99);
   });
 
