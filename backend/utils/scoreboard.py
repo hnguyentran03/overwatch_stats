@@ -109,7 +109,7 @@ def _load_reference_b64():
         return base64.standard_b64encode(f.read()).decode("utf-8")
 
 
-def _build_prompt(hero_names_by_role, has_reference):
+def _build_prompt(hero_names_by_role, has_reference, has_crop):
     roster = "\n".join(
         f"  {role}: {', '.join(names)}"
         for role, names in hero_names_by_role.items()
@@ -134,11 +134,22 @@ def _build_prompt(hero_names_by_role, has_reference):
             "rather than guessing.\n\n"
         )
 
+    if has_crop:
+        crop_note = (
+            "The LAST image is a zoomed-in view of the hero-portrait column "
+            "from the same scoreboard: the 10 portraits in top-to-bottom row "
+            "order (team1 rows 1-5, then team2 rows 1-5). Use it as the "
+            "primary source when identifying each row's hero.\n\n"
+        )
+    else:
+        crop_note = ""
+
     return (
         "You are reading an Overwatch 2 end-of-match scoreboard. It shows two "
         "teams of 5 players each. The top (blue) team is team1; the bottom (red) "
         "team is team2.\n\n"
-        + hero_id +
+        + hero_id
+        + crop_note +
         "Within each team, the 5 rows are grouped by role, with a role icon at "
         "the far left of every row — normally row 1 = the single Tank, rows 2-3 "
         "= the two Damage players, rows 4-5 = the two Support players. Use the "
@@ -166,6 +177,7 @@ def parse_scoreboard(image_bytes, media_type, hero_names_by_role, client=None):
 
     image_data = base64.standard_b64encode(image_bytes).decode("utf-8")
     reference_b64 = _load_reference_b64()
+    crop_bytes = _portrait_crop(image_bytes)
 
     content = []
     if reference_b64 is not None:
@@ -181,9 +193,22 @@ def parse_scoreboard(image_bytes, media_type, hero_names_by_role, client=None):
         "type": "image",
         "source": {"type": "base64", "media_type": media_type, "data": image_data},
     })
+    if crop_bytes is not None:
+        content.append({
+            "type": "image",
+            "source": {
+                "type": "base64",
+                "media_type": "image/png",
+                "data": base64.standard_b64encode(crop_bytes).decode("utf-8"),
+            },
+        })
     content.append({
         "type": "text",
-        "text": _build_prompt(hero_names_by_role, has_reference=reference_b64 is not None),
+        "text": _build_prompt(
+            hero_names_by_role,
+            has_reference=reference_b64 is not None,
+            has_crop=crop_bytes is not None,
+        ),
     })
 
     response = client.messages.parse(

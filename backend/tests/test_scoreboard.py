@@ -1,4 +1,5 @@
 """Unit tests for the scoreboard parser util (Anthropic client mocked)."""
+import base64
 import os
 import sys
 from types import SimpleNamespace
@@ -130,3 +131,34 @@ def test_portrait_crop_rejects_16_9_fullscreen():
 
 def test_portrait_crop_rejects_garbage_bytes():
     assert _portrait_crop(b"not an image") is None
+
+
+def test_appends_portrait_crop_when_available(monkeypatch):
+    import utils.scoreboard as sb
+    monkeypatch.setattr(sb, "_load_reference_b64", lambda: "FAKEREF")
+    monkeypatch.setattr(sb, "_portrait_crop", lambda _: b"CROPPNG")
+    captured = {}
+    parse_scoreboard(b"bytes", "image/png", HEROES_BY_ROLE,
+                     client=_capturing_client(captured))
+
+    content = captured["messages"][0]["content"]
+    images = [b for b in content if b["type"] == "image"]
+    assert len(images) == 3
+    assert images[2]["source"]["data"] == \
+        base64.standard_b64encode(b"CROPPNG").decode("utf-8")
+    prompt = content[-1]["text"]
+    assert "zoomed-in view of the hero-portrait column" in prompt
+
+
+def test_omits_crop_when_unavailable(monkeypatch):
+    import utils.scoreboard as sb
+    monkeypatch.setattr(sb, "_load_reference_b64", lambda: "FAKEREF")
+    monkeypatch.setattr(sb, "_portrait_crop", lambda _: None)
+    captured = {}
+    parse_scoreboard(b"bytes", "image/png", HEROES_BY_ROLE,
+                     client=_capturing_client(captured))
+
+    content = captured["messages"][0]["content"]
+    images = [b for b in content if b["type"] == "image"]
+    assert len(images) == 2
+    assert "zoomed-in view" not in content[-1]["text"]
