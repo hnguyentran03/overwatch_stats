@@ -33,3 +33,9 @@ hero portraits; if not, adjust the `CROP_*` constants in `utils/scoreboard.py`.
   - image3.png: 7/10 — row 3 predicted Cassidy expected Torbjörn; row 6 predicted Ramattra expected Junker Queen; row 10 predicted Juno expected Ana
   - image4.png: 8/10 — row 3 predicted Ashe expected Torbjörn; row 9 predicted Illari expected Brigitte
   - image5.png: 7/10 — row 1 predicted Ramattra expected Winston; row 4 predicted Baptiste expected Ana; row 7 predicted Hanzo expected Emre (Emre is a custom hero with no reference portrait; this miss is expected)
+- 2026-07-14 crop + portrait_notes: 45/50 (90%)
+  - image.png: 10/10
+  - image2.png: 9/10 — row 7 predicted Illari expected Sojourn
+  - image3.png: 10/10
+  - image4.png: 10/10
+  - image5.png: 6/10 — row 1 predicted Ramattra expected Winston; row 4 predicted Baptiste expected Ana; row 6 predicted Widowmaker expected Ramattra; row 7 predicted Cassidy expected Emre (Emre is a custom hero with no reference portrait; this miss is expected)
