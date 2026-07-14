@@ -49,3 +49,7 @@ yarn-error.log*
 # Misc
 CLAUDE.md
 docs/
+
+# Scoreboard eval assets (personal screenshots, generated crops)
+backend/eval/screenshots/
+backend/eval/crops/
