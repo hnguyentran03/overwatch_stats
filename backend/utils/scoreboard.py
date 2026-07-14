@@ -82,6 +82,7 @@ class ScoreboardConfigError(RuntimeError):
 class ScoreboardPlayer(BaseModel):
     team: str            # "team1" (blue/top) or "team2" (red/bottom)
     battle_tag: str      # display name exactly as shown on the scoreboard
+    portrait_notes: str  # visible features of this row's portrait, noted before naming the hero
     hero_name: str       # exact name from the provided roster, or "" if unsure
     eliminations: int
     assists: int
@@ -144,12 +145,21 @@ def _build_prompt(hero_names_by_role, has_reference, has_crop):
     else:
         crop_note = ""
 
+    notes_note = (
+        "For each player, first fill portrait_notes with the visual features "
+        "you can actually see in that row's portrait (headgear, hair, colors, "
+        "silhouette, weapon). Then choose hero_name: the roster hero whose "
+        "look matches those notes. Base hero_name only on features you wrote "
+        "in portrait_notes.\n\n"
+    )
+
     return (
         "You are reading an Overwatch 2 end-of-match scoreboard. It shows two "
         "teams of 5 players each. The top (blue) team is team1; the bottom (red) "
         "team is team2.\n\n"
         + hero_id
-        + crop_note +
+        + crop_note
+        + notes_note +
         "Within each team, the 5 rows are grouped by role, with a role icon at "
         "the far left of every row — normally row 1 = the single Tank, rows 2-3 "
         "= the two Damage players, rows 4-5 = the two Support players. Use the "
@@ -221,4 +231,4 @@ def parse_scoreboard(image_bytes, media_type, hero_names_by_role, client=None):
     parsed = response.parsed_output
     if parsed is None:
         raise ValueError("Model returned no parsable scoreboard data")
-    return [p.model_dump() for p in parsed.players]
+    return [p.model_dump(exclude={"portrait_notes"}) for p in parsed.players]

@@ -33,7 +33,8 @@ def _fake_client(scoreboard):
 def test_parse_scoreboard_maps_players():
     scoreboard = Scoreboard(players=[
         ScoreboardPlayer(
-            team="team1", battle_tag="IMTHETROOP", hero_name="Reinhardt",
+            team="team1", battle_tag="IMTHETROOP", portrait_notes="silver armor, hammer",
+            hero_name="Reinhardt",
             eliminations=12, assists=2, deaths=9,
             damage_done=5953, healing_done=4047, damage_mitigated=760,
         ),
@@ -162,3 +163,29 @@ def test_omits_crop_when_unavailable(monkeypatch):
     images = [b for b in content if b["type"] == "image"]
     assert len(images) == 2
     assert "zoomed-in view" not in content[-1]["text"]
+
+
+def test_portrait_notes_not_in_output():
+    scoreboard = Scoreboard(players=[
+        ScoreboardPlayer(
+            team="team2", battle_tag="Player", portrait_notes="red visor",
+            hero_name="Genji", eliminations=0, assists=0, deaths=0,
+            damage_done=0, healing_done=0, damage_mitigated=0,
+        ),
+    ])
+    result = parse_scoreboard(b"fakebytes", "image/png", HEROES_BY_ROLE,
+                              client=_fake_client(scoreboard))
+    assert "portrait_notes" not in result[0]
+
+
+def test_prompt_instructs_portrait_notes_first():
+    captured = {}
+    parse_scoreboard(b"bytes", "image/png", HEROES_BY_ROLE,
+                     client=_capturing_client(captured))
+    prompt = captured["messages"][0]["content"][-1]["text"]
+    assert "portrait_notes" in prompt
+
+
+def test_portrait_notes_declared_before_hero_name():
+    fields = list(ScoreboardPlayer.model_fields)
+    assert fields.index("portrait_notes") < fields.index("hero_name")
