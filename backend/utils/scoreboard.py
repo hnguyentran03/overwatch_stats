@@ -24,29 +24,39 @@ REFERENCE_PATH = os.path.join(
     "hero_reference.png",
 )
 
-# Fractional bounds of the hero-portrait column on a 16:9 scoreboard,
+# Fractional bounds of the hero-portrait column on the cropped match-summary
+# card layout (two stacked 5-row team cards separated by a "VS" divider),
 # spanning all 10 rows (team1 rows 1-5, then team2 rows 1-5). Calibrated
 # against real screenshots via `python scripts/eval_scoreboard.py --save-crops`.
-CROP_LEFT = 0.10
-CROP_RIGHT = 0.20
-CROP_TOP = 0.18
-CROP_BOTTOM = 0.88
+CROP_LEFT = 0.065
+CROP_RIGHT = 0.145
+CROP_TOP = 0.065
+CROP_BOTTOM = 0.985
 CROP_SCALE = 3
-_ASPECT = 16 / 9
-_ASPECT_TOLERANCE = 0.05
+
+# The user's real screenshots are cropped match-summary cards, not full 16:9
+# screenshots — their width/height ratio measures ~1.06-1.15. Accept a card
+# layout with modest margin; anything outside this range is treated as an
+# uncalibrated layout and falls back to the full screenshot.
+_MIN_ASPECT = 1.0
+_MAX_ASPECT = 1.25
 
 
 def _portrait_crop(image_bytes):
     """Return upscaled PNG bytes of the hero-portrait column, or None.
 
-    None whenever the image can't be read or isn't ~16:9 — callers fall back
-    to sending only the full screenshot.
+    None whenever the image can't be read or its aspect ratio falls outside
+    the calibrated card-layout bounds — callers fall back to sending only the
+    full screenshot.
     """
     try:
         img = Image.open(io.BytesIO(image_bytes))
         img.load()
         width, height = img.size
-        if height == 0 or abs(width / height - _ASPECT) / _ASPECT > _ASPECT_TOLERANCE:
+        if height == 0:
+            return None
+        ratio = width / height
+        if ratio < _MIN_ASPECT or ratio > _MAX_ASPECT:
             return None
         box = (
             int(width * CROP_LEFT),

@@ -1,1 +1,12 @@
-{}
+{
+  "image.png": ["Reinhardt", "Genji", "Soldier: 76", "Ana", "Kiriko",
+                "Reinhardt", "Tracer", "Cassidy", "Kiriko", "Ana"],
+  "image2.png": ["Orisa", "Echo", "Soldier: 76", "Lúcio", "Kiriko",
+                 "Winston", "Sojourn", "Genji", "Lúcio", "Kiriko"],
+  "image3.png": ["Doomfist", "Tracer", "Torbjörn", "Lúcio", "Kiriko",
+                 "Junker Queen", "Soldier: 76", "Tracer", "Zenyatta", "Ana"],
+  "image4.png": ["Zarya", "Genji", "Torbjörn", "Lúcio", "Kiriko",
+                 "D.Va", "Widowmaker", "Genji", "Brigitte", "Kiriko"],
+  "image5.png": ["Winston", "Widowmaker", "Reaper", "Ana", "Kiriko",
+                 "Ramattra", "Emre", "Ashe", "Baptiste", "Kiriko"]
+}

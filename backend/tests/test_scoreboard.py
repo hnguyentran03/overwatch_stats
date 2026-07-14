@@ -111,18 +111,21 @@ def _png_bytes(width, height):
     return buf.getvalue()
 
 
-def test_portrait_crop_returns_upscaled_png_for_16_9():
-    data = _portrait_crop(_png_bytes(1920, 1080))
+def test_portrait_crop_returns_upscaled_png_for_card_layout():
+    width, height = 1244, 1129
+    data = _portrait_crop(_png_bytes(width, height))
     assert data is not None
     crop = Image.open(io.BytesIO(data))
     assert crop.format == "PNG"
-    expected_w = (int(1920 * CROP_RIGHT) - int(1920 * CROP_LEFT)) * CROP_SCALE
-    expected_h = (int(1080 * CROP_BOTTOM) - int(1080 * CROP_TOP)) * CROP_SCALE
+    expected_w = (int(width * CROP_RIGHT) - int(width * CROP_LEFT)) * CROP_SCALE
+    expected_h = (int(height * CROP_BOTTOM) - int(height * CROP_TOP)) * CROP_SCALE
     assert crop.size == (expected_w, expected_h)
 
 
-def test_portrait_crop_rejects_non_16_9():
-    assert _portrait_crop(_png_bytes(1000, 1000)) is None
+def test_portrait_crop_rejects_16_9_fullscreen():
+    # A full 16:9 screenshot is an uncalibrated layout under the card-based
+    # gate and should fall back rather than produce a misaligned crop.
+    assert _portrait_crop(_png_bytes(1920, 1080)) is None
 
 
 def test_portrait_crop_rejects_garbage_bytes():
