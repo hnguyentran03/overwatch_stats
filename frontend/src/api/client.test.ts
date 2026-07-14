@@ -18,7 +18,6 @@ import {
   getMatchDetails,
   createMatch,
   parseScoreboard,
-  parseScoreboard,
 } from './client';
 import type { CreateMatchPayload } from '../types';
 
