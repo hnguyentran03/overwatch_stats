@@ -5,11 +5,13 @@ structured outputs so the response is guaranteed parseable. The Anthropic
 client is injected to keep the function unit-testable.
 """
 import base64
+import io
 import os
 from typing import List
 
 import anthropic
 from pydantic import BaseModel
+from PIL import Image
 
 MODEL = "claude-opus-4-8"
 
@@ -21,6 +23,46 @@ REFERENCE_PATH = os.path.join(
     "assets",
     "hero_reference.png",
 )
+
+# Fractional bounds of the hero-portrait column on a 16:9 scoreboard,
+# spanning all 10 rows (team1 rows 1-5, then team2 rows 1-5). Calibrated
+# against real screenshots via `python scripts/eval_scoreboard.py --save-crops`.
+CROP_LEFT = 0.10
+CROP_RIGHT = 0.20
+CROP_TOP = 0.18
+CROP_BOTTOM = 0.88
+CROP_SCALE = 3
+_ASPECT = 16 / 9
+_ASPECT_TOLERANCE = 0.05
+
+
+def _portrait_crop(image_bytes):
+    """Return upscaled PNG bytes of the hero-portrait column, or None.
+
+    None whenever the image can't be read or isn't ~16:9 — callers fall back
+    to sending only the full screenshot.
+    """
+    try:
+        img = Image.open(io.BytesIO(image_bytes))
+        img.load()
+        width, height = img.size
+        if height == 0 or abs(width / height - _ASPECT) / _ASPECT > _ASPECT_TOLERANCE:
+            return None
+        box = (
+            int(width * CROP_LEFT),
+            int(height * CROP_TOP),
+            int(width * CROP_RIGHT),
+            int(height * CROP_BOTTOM),
+        )
+        crop = img.convert("RGB").crop(box)
+        crop = crop.resize(
+            (crop.width * CROP_SCALE, crop.height * CROP_SCALE), Image.LANCZOS
+        )
+        out = io.BytesIO()
+        crop.save(out, format="PNG")
+        return out.getvalue()
+    except Exception:
+        return None
 
 
 class ScoreboardConfigError(RuntimeError):

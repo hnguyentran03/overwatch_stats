@@ -90,3 +90,40 @@ def test_parse_scoreboard_raises_when_no_parsed_output():
     client = _fake_client(None)
     with pytest.raises(ValueError):
         parse_scoreboard(b"fakebytes", "image/png", HEROES_BY_ROLE, client=client)
+
+
+from PIL import Image
+import io
+
+from utils.scoreboard import (  # noqa: E402
+    _portrait_crop,
+    CROP_LEFT,
+    CROP_RIGHT,
+    CROP_TOP,
+    CROP_BOTTOM,
+    CROP_SCALE,
+)
+
+
+def _png_bytes(width, height):
+    buf = io.BytesIO()
+    Image.new("RGB", (width, height), (30, 30, 30)).save(buf, format="PNG")
+    return buf.getvalue()
+
+
+def test_portrait_crop_returns_upscaled_png_for_16_9():
+    data = _portrait_crop(_png_bytes(1920, 1080))
+    assert data is not None
+    crop = Image.open(io.BytesIO(data))
+    assert crop.format == "PNG"
+    expected_w = (int(1920 * CROP_RIGHT) - int(1920 * CROP_LEFT)) * CROP_SCALE
+    expected_h = (int(1080 * CROP_BOTTOM) - int(1080 * CROP_TOP)) * CROP_SCALE
+    assert crop.size == (expected_w, expected_h)
+
+
+def test_portrait_crop_rejects_non_16_9():
+    assert _portrait_crop(_png_bytes(1000, 1000)) is None
+
+
+def test_portrait_crop_rejects_garbage_bytes():
+    assert _portrait_crop(b"not an image") is None
