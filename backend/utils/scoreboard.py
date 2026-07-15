@@ -6,12 +6,15 @@ client is injected to keep the function unit-testable.
 """
 import base64
 import io
+import logging
 import os
 from typing import List
 
 import anthropic
 from pydantic import BaseModel
 from PIL import Image
+
+logger = logging.getLogger(__name__)
 
 MODEL = "claude-opus-4-8"
 
@@ -72,6 +75,7 @@ def _portrait_crop(image_bytes):
         crop.save(out, format="PNG")
         return out.getvalue()
     except Exception:
+        logger.warning("Portrait crop failed; sending scoreboard without zoomed crop", exc_info=True)
         return None
 
 

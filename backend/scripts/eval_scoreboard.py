@@ -34,6 +34,8 @@ DB_PATH = os.path.join(BACKEND_DIR, "overwatch_stats.db")
 
 def load_roster():
     """Return {role: [hero names]} from the app database."""
+    if not os.path.exists(DB_PATH):
+        sys.exit(f"Database not found: {DB_PATH} — start the backend once to create and seed it.")
     conn = sqlite3.connect(DB_PATH)
     try:
         rows = conn.execute(
@@ -102,9 +104,10 @@ def save_crops(labels):
         with open(os.path.join(SCREENSHOT_DIR, filename), "rb") as f:
             crop = _portrait_crop(f.read())
         if crop is None:
-            print(f"{filename}: no crop (not ~16:9 or unreadable)")
+            print(f"{filename}: no crop (aspect outside card-layout bounds, or unreadable)")
             continue
-        out_path = os.path.join(CROPS_DIR, f"crop_{filename}.png")
+        stem, _ = os.path.splitext(filename)
+        out_path = os.path.join(CROPS_DIR, f"crop_{stem}.png")
         with open(out_path, "wb") as f:
             f.write(crop)
         print(f"{filename}: wrote {out_path}")
