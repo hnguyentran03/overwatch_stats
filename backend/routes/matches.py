@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, current_app
-from models import Match, BannedHero, Hero, Map, Player, MatchPlayer, OutcomeEnum, TeamEnum
+from models import Match, BannedHero, Hero, Map, Player, MatchPlayer, OutcomeEnum, TeamEnum, GameModeEnum
 from utils.db import get_db
 from utils.scoreboard import parse_scoreboard, ScoreboardConfigError
 from utils.rate_limit import SlidingWindowLimiter
@@ -51,7 +51,7 @@ def create_match():
     if not data:
         return jsonify({'error': 'No data provided'}), 400
 
-    for field in ['date_time', 'map_id', 'final_score', 'outcome']:
+    for field in ['date_time', 'map_id', 'final_score', 'outcome', 'game_mode']:
         if field not in data:
             return jsonify({'error': f'Missing required field: {field}'}), 400
 
@@ -62,6 +62,11 @@ def create_match():
             outcome = OutcomeEnum(data['outcome'])
         except ValueError:
             return jsonify({'error': 'Invalid outcome. Must be win, loss, or draw'}), 400
+
+        try:
+            game_mode = GameModeEnum(data['game_mode'])
+        except ValueError:
+            return jsonify({'error': 'Invalid game_mode. Must be ranked or unranked'}), 400
 
         try:
             date_time = datetime.fromisoformat(data['date_time'])
@@ -77,7 +82,8 @@ def create_match():
             map_id=data['map_id'],
             final_score=data['final_score'],
             outcome=outcome,
-            duration=float(data.get('duration', 0.0))
+            duration=float(data.get('duration', 0.0)),
+            game_mode=game_mode,
         )
         session.add(match)
         session.flush()

@@ -52,6 +52,7 @@ class TestCreateMatch:
             "map_id": map_id,
             "final_score": "2-1",
             "outcome": "win",
+            "game_mode": "ranked",
             "duration": 15.0,
             "players": [
                 {
@@ -113,6 +114,34 @@ class TestCreateMatch:
             "/api/matches", json=self._payload(map_id, date_time="not-a-date")
         )
         assert resp.status_code == 400
+
+    def test_missing_game_mode_returns_400(self, client, map_by_name):
+        map_obj = map_by_name("King's Row")
+        payload = self._payload(map_obj.map_id)
+        del payload["game_mode"]
+        resp = client.post("/api/matches", json=payload)
+        assert resp.status_code == 400
+        assert "game_mode" in resp.get_json()["error"]
+
+    def test_invalid_game_mode_returns_400(self, client, map_by_name):
+        map_obj = map_by_name("King's Row")
+        payload = self._payload(map_obj.map_id)
+        payload["game_mode"] = "bogus"
+        resp = client.post("/api/matches", json=payload)
+        assert resp.status_code == 400
+        assert "game_mode" in resp.get_json()["error"]
+
+    def test_creates_with_game_mode(self, client, map_by_name, session):
+        from models import Match
+        map_obj = map_by_name("King's Row")
+        payload = self._payload(map_obj.map_id)
+        payload["game_mode"] = "unranked"
+        resp = client.post("/api/matches", json=payload)
+        assert resp.status_code == 201
+        mid = resp.get_json()["match_id"]
+        from models import GameModeEnum
+        stored = session.query(Match).filter_by(match_id=mid).first()
+        assert stored.game_mode == GameModeEnum.unranked
 
     def test_unknown_map_returns_404(self, client):
         resp = client.post("/api/matches", json=self._payload(999999))
