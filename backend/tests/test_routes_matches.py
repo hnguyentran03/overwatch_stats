@@ -329,6 +329,42 @@ class TestParseScoreboard:
         assert self._upload(client, monkeypatch, lambda *a, **k: []).status_code == 200
 
 
+class TestMatchesModeFilter:
+    def test_filters_matches_by_mode(self, client, make_player, add_match):
+        from models import GameModeEnum
+        player = make_player()
+        add_match(player, game_mode=GameModeEnum.ranked)
+        add_match(player, game_mode=GameModeEnum.unranked)
+        add_match(player, game_mode=GameModeEnum.unranked)
+
+        resp = client.get("/api/matches?mode=ranked")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["count"] == 1
+        assert all(m["game_mode"] == "ranked" for m in data["matches"])
+
+        resp = client.get("/api/matches?mode=unranked")
+        assert resp.get_json()["count"] == 2
+
+    def test_mode_all_returns_everything(self, client, make_player, add_match):
+        from models import GameModeEnum
+        player = make_player()
+        add_match(player, game_mode=GameModeEnum.ranked)
+        add_match(player, game_mode=GameModeEnum.unranked)
+        assert client.get("/api/matches?mode=all").get_json()["count"] == 2
+        assert client.get("/api/matches").get_json()["count"] == 2
+
+    def test_invalid_mode_returns_400(self, client):
+        resp = client.get("/api/matches?mode=bogus")
+        assert resp.status_code == 400
+
+    def test_matches_response_includes_game_mode(self, client, make_player, add_match):
+        player = make_player()
+        add_match(player)
+        m = client.get("/api/matches").get_json()["matches"][0]
+        assert m["game_mode"] == "ranked"
+
+
 class TestGameModeColumn:
     def test_add_match_defaults_to_ranked(self, add_match, make_player, session):
         from models import Match

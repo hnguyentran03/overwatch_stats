@@ -3,6 +3,7 @@ from models import Match, BannedHero, Hero, Map, Player, MatchPlayer, OutcomeEnu
 from utils.db import get_db
 from utils.scoreboard import parse_scoreboard, ScoreboardConfigError
 from utils.rate_limit import SlidingWindowLimiter
+from utils.filters import parse_match_filters
 from datetime import datetime
 
 matches_bp = Blueprint('matches', __name__)
@@ -219,6 +220,12 @@ def get_matches():
     try:
         query = session.query(Match)
 
+        clauses, filter_error = parse_match_filters(request.args)
+        if filter_error:
+            return jsonify({'error': filter_error}), 400
+        for clause in clauses:
+            query = query.filter(clause)
+
         # Apply date filtering
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
@@ -248,7 +255,8 @@ def get_matches():
                 'map_name': match.map.map_name,
                 'map_type': match.map.map_type.value,
                 'final_score': match.final_score,
-                'outcome': match.outcome.value
+                'outcome': match.outcome.value,
+                'game_mode': match.game_mode.value
             })
 
         return jsonify({
@@ -352,6 +360,7 @@ def get_match_details(match_id):
             'map_type': match.map.map_type.value,
             'final_score': match.final_score,
             'outcome': match.outcome.value,
+            'game_mode': match.game_mode.value,
             'duration': match.duration,
             'players': players_result,
             'bans': bans,
