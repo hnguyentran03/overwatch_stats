@@ -4,6 +4,8 @@
 export type Role = 'tank' | 'dps' | 'support';
 export type Outcome = 'win' | 'loss' | 'draw';
 export type Team = 'team1' | 'team2';
+export type GameMode = 'ranked' | 'unranked';
+export type ModeFilter = 'all' | GameMode;
 export type MapType = 'Hybrid' | 'Control' | 'Escort' | 'Flashpoint' | 'Push';
 
 // ── Reference entities ──
@@ -89,6 +91,7 @@ export interface MatchListItem {
   map_type: MapType;
   final_score: string;
   outcome: Outcome;
+  game_mode: GameMode;
 }
 export interface MatchesResponse {
   matches: MatchListItem[];
@@ -118,6 +121,7 @@ export interface MatchOutcome {
   damage_done: number;
   healing_done: number;
   damage_mitigated: number;
+  game_mode: GameMode;
 }
 export interface MatchOutcomesResponse {
   battle_tag: string;
@@ -240,6 +244,7 @@ export interface MatchDetails {
   duration: number;
   players: MatchDetailPlayer[];
   bans: { team1: BanInfo[]; team2: BanInfo[] };
+  game_mode: GameMode;
 }
 
 // ── /matches/<id>/banned_heroes ──

@@ -20,6 +20,7 @@ const makeMatch = (overrides: Partial<MatchOutcome> = {}): MatchOutcome => ({
   damage_done: 5000,
   healing_done: 3000,
   damage_mitigated: 0,
+  game_mode: 'ranked',
   ...overrides,
 });
 
