@@ -34,7 +34,7 @@ beforeEach(() => {
 describe('battle tag encoding', () => {
   test('encodes the # in battle tags', async () => {
     await getPlayerStats('PlayerOne#1234');
-    expect(instance.get).toHaveBeenCalledWith('/players/PlayerOne%231234/stats');
+    expect(instance.get).toHaveBeenCalledWith('/players/PlayerOne%231234/stats', { params: {} });
   });
 
   test('encodes special characters in win_percentage/hero path', async () => {
@@ -77,6 +77,13 @@ describe('query params', () => {
     await getMapTrends('A#1');
     expect(instance.get).toHaveBeenCalledWith('/players/A%231/map_trends', {
       params: { time_window: 'week' },
+    });
+  });
+
+  test('getPlayerStats adds mode only when not "all"', async () => {
+    await getPlayerStats('A#1', 'ranked');
+    expect(instance.get).toHaveBeenCalledWith('/players/A%231/stats', {
+      params: { mode: 'ranked' },
     });
   });
 });
