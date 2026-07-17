@@ -5,7 +5,7 @@ Drops and recreates all data on every run.
 from datetime import datetime, timedelta
 import random
 from utils.db import init_db
-from models import Player, Match, MatchPlayer, Hero, Map, BannedHero, OutcomeEnum, TeamEnum
+from models import Player, Match, MatchPlayer, Hero, Map, BannedHero, OutcomeEnum, TeamEnum, GameModeEnum
 from config import DevelopmentConfig
 
 FILLER_COUNT = 25
@@ -76,6 +76,7 @@ def add_match(session, player, hero_pool, maps, start_date, day_range, filler_pl
         final_score=score,
         outcome=outcome,
         duration=round(random.uniform(10, 22), 2),
+        game_mode=random.choices([GameModeEnum.ranked, GameModeEnum.unranked], weights=[60, 40])[0],
     )
     session.add(match)
     session.flush()

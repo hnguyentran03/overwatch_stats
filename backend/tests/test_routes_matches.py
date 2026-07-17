@@ -9,7 +9,7 @@ BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BACKEND_DIR not in sys.path:
     sys.path.insert(0, BACKEND_DIR)
 
-from models import OutcomeEnum, TeamEnum  # noqa: E402
+from models import OutcomeEnum, TeamEnum, GameModeEnum  # noqa: E402
 
 
 class TestHealth:
@@ -298,3 +298,19 @@ class TestParseScoreboard:
             assert self._upload(client, monkeypatch, no_key).status_code == 503
         # ...so a real call still succeeds.
         assert self._upload(client, monkeypatch, lambda *a, **k: []).status_code == 200
+
+
+class TestGameModeColumn:
+    def test_add_match_defaults_to_ranked(self, add_match, make_player, session):
+        from models import Match
+        player = make_player()
+        match = add_match(player)
+        stored = session.query(Match).filter_by(match_id=match.match_id).first()
+        assert stored.game_mode == GameModeEnum.ranked
+
+    def test_add_match_accepts_unranked(self, add_match, make_player, session):
+        from models import Match
+        player = make_player()
+        match = add_match(player, game_mode=GameModeEnum.unranked)
+        stored = session.query(Match).filter_by(match_id=match.match_id).first()
+        assert stored.game_mode == GameModeEnum.unranked
