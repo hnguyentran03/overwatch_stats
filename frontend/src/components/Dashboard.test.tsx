@@ -90,7 +90,19 @@ describe('Dashboard', () => {
     await waitFor(() =>
       expect(screen.getByRole('heading', { name: 'NewPlayer#5678' })).toBeInTheDocument()
     );
-    expect(getPlayerStats).toHaveBeenLastCalledWith('NewPlayer#5678');
+    expect(getPlayerStats).toHaveBeenLastCalledWith('NewPlayer#5678', 'all');
+  });
+
+  test('changing the mode filter refetches with that mode', async () => {
+    render(<Dashboard />);
+    await waitFor(() => screen.getByRole('heading', { name: 'PlayerOne#1234' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ranked' }));
+
+    await waitFor(() =>
+      expect(getPlayerStats).toHaveBeenLastCalledWith('PlayerOne#1234', 'ranked')
+    );
+    expect(getPlayerMatchOutcomes).toHaveBeenLastCalledWith('PlayerOne#1234', 'ranked');
   });
 
   test('switching tabs renders the corresponding component', async () => {

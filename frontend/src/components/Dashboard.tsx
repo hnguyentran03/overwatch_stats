@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getPlayerStats, getPlayerMatchOutcomes } from '../api/client';
-import type { PlayerStats, MatchOutcome } from '../types';
+import type { PlayerStats, MatchOutcome, ModeFilter } from '../types';
 import HeroStats from './HeroStats';
 import MapStats from './MapStats';
 import TrendChart from './TrendChart';
@@ -18,10 +18,11 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'heroes' | 'maps' | 'trends'>('overview');
   const [selectedMatchId, setSelectedMatchId] = useState<number | null>(null);
   const [showLogMatch, setShowLogMatch] = useState<boolean>(false);
+  const [modeFilter, setModeFilter] = useState<ModeFilter>('all');
 
   useEffect(() => {
     fetchPlayerData(searchedTag);
-  }, [searchedTag]);
+  }, [searchedTag, modeFilter]);
 
   const fetchPlayerData = async (tag: string) => {
     setLoading(true);
@@ -29,8 +30,8 @@ const Dashboard = () => {
     setPlayerStats(null);
     try {
       const [stats, outcomes] = await Promise.all([
-        getPlayerStats(tag),
-        getPlayerMatchOutcomes(tag)
+        getPlayerStats(tag, modeFilter),
+        getPlayerMatchOutcomes(tag, modeFilter)
       ]);
       setPlayerStats(stats);
       setMatchOutcomes(outcomes.matches);
@@ -146,13 +147,13 @@ const Dashboard = () => {
             <MatchHistory matches={matchOutcomes} onMatchClick={setSelectedMatchId} />
           )}
           {activeTab === 'heroes' && (
-            <HeroStats playerId={searchedTag} />
+            <HeroStats playerId={searchedTag} mode={modeFilter} />
           )}
           {activeTab === 'maps' && (
-            <MapStats playerId={searchedTag} />
+            <MapStats playerId={searchedTag} mode={modeFilter} />
           )}
           {activeTab === 'trends' && (
-            <TrendChart playerId={searchedTag} />
+            <TrendChart playerId={searchedTag} mode={modeFilter} />
           )}
         </div>
       </>
@@ -200,6 +201,17 @@ const Dashboard = () => {
           <button className="log-match-btn" onClick={() => setShowLogMatch(true)}>
             + Log Match
           </button>
+        </div>
+        <div className="mode-filter" role="group" aria-label="Game mode filter">
+          {([['all', 'All'], ['ranked', 'Ranked'], ['unranked', 'Unranked']] as const).map(([value, label]) => (
+            <button
+              key={value}
+              className={modeFilter === value ? 'active' : ''}
+              onClick={() => setModeFilter(value)}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </header>
 
