@@ -160,3 +160,47 @@ class TestMapTrends:
         assert len(body["map_trends"]) == 2
         # Weakest map (0% win) should be first.
         assert body["weakest_maps"][0]["map_name"] == "King's Row"
+
+
+class TestStatsModeFilter:
+    def test_hero_win_pct_filtered_by_mode(self, client, make_player, add_match):
+        from models import GameModeEnum, OutcomeEnum
+        player = make_player("SFilter#1")
+        add_match(player, hero_name="Ana", game_mode=GameModeEnum.ranked, outcome=OutcomeEnum.win)
+        add_match(player, hero_name="Ana", game_mode=GameModeEnum.unranked, outcome=OutcomeEnum.loss)
+        tag = "SFilter%231"
+        data = client.get(f"/api/players/{tag}/win_percentage/hero?mode=ranked").get_json()
+        ana = next(h for h in data["hero_stats"] if h["hero_name"] == "Ana")
+        assert ana["total"] == 1
+        assert ana["wins"] == 1
+
+    def test_map_win_pct_filtered_by_mode(self, client, make_player, add_match):
+        from models import GameModeEnum
+        player = make_player("SFilter#2")
+        add_match(player, map_name="King's Row", game_mode=GameModeEnum.ranked)
+        add_match(player, map_name="King's Row", game_mode=GameModeEnum.unranked)
+        tag = "SFilter%232"
+        data = client.get(f"/api/players/{tag}/win_percentage/map?mode=unranked").get_json()
+        kings = next(m for m in data["map_stats"] if m["map_name"] == "King's Row")
+        assert kings["total"] == 1
+
+    def test_invalid_mode_returns_400(self, client, make_player):
+        make_player("SFilter#3")
+        resp = client.get("/api/players/SFilter%233/win_percentage/hero?mode=bogus")
+        assert resp.status_code == 400
+
+    def test_map_stats_detail_filtered_by_mode(self, client, make_player, add_match, map_by_name):
+        from models import GameModeEnum
+        player = make_player("SFilter#4")
+        add_match(player, map_name="King's Row", game_mode=GameModeEnum.ranked)
+        add_match(player, map_name="King's Row", game_mode=GameModeEnum.unranked)
+        map_id = map_by_name("King's Row").map_id
+        data = client.get(f"/api/players/SFilter%234/map_stats/{map_id}?mode=ranked").get_json()
+        assert data["total"] == 1
+
+    def test_map_trends_omits_maps_outside_mode(self, client, make_player, add_match):
+        from models import GameModeEnum
+        player = make_player("SFilter#5")
+        add_match(player, map_name="King's Row", game_mode=GameModeEnum.unranked)
+        data = client.get("/api/players/SFilter%235/map_trends?mode=ranked").get_json()
+        assert data["map_trends"] == []

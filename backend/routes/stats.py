@@ -7,6 +7,7 @@ from utils.calculations import (
     calculate_map_trends,
     identify_weakest_maps
 )
+from utils.filters import parse_match_filters
 from sqlalchemy import func
 
 stats_bp = Blueprint('stats', __name__)
@@ -30,13 +31,20 @@ def get_win_percentage_by_hero(battle_tag):
         player_id = player.player_id
         map_id = request.args.get('map_id', type=int)
 
+        clauses, filter_error = parse_match_filters(request.args)
+        if filter_error:
+            return jsonify({'error': filter_error}), 400
+
         if map_id:
-            hero_ids = session.query(MatchPlayer.hero_id).join(
+            hero_ids_q = session.query(MatchPlayer.hero_id).join(
                 Match, MatchPlayer.match_id == Match.match_id
             ).filter(
                 MatchPlayer.player_id == player_id,
                 Match.map_id == map_id
-            ).distinct().all()
+            )
+            for c in clauses:
+                hero_ids_q = hero_ids_q.filter(c)
+            hero_ids = hero_ids_q.distinct().all()
             heroes = [session.query(Hero).filter_by(hero_id=hid).first() for (hid,) in hero_ids]
         else:
             heroes = session.query(Hero).all()
@@ -49,15 +57,19 @@ def get_win_percentage_by_hero(battle_tag):
                 MatchPlayer.player_id == player_id,
                 MatchPlayer.hero_id == hero.hero_id
             )
-            mps_q = session.query(MatchPlayer).filter(
+            mps_q = session.query(MatchPlayer).join(
+                Match, MatchPlayer.match_id == Match.match_id
+            ).filter(
                 MatchPlayer.player_id == player_id,
-                MatchPlayer.hero_id == hero.hero_id
+                MatchPlayer.hero_id == hero.hero_id,
             )
             if map_id:
                 matches_q = matches_q.filter(Match.map_id == map_id)
-                mps_q = mps_q.join(
-                    Match, MatchPlayer.match_id == Match.match_id
-                ).filter(Match.map_id == map_id)
+                mps_q = mps_q.filter(Match.map_id == map_id)
+
+            for c in clauses:
+                matches_q = matches_q.filter(c)
+                mps_q = mps_q.filter(c)
 
             matches = matches_q.distinct().all()
             match_players = mps_q.all()
@@ -131,6 +143,10 @@ def get_win_percentage_by_map(battle_tag):
 
         hero_id = request.args.get('hero_id', type=int)
 
+        clauses, filter_error = parse_match_filters(request.args)
+        if filter_error:
+            return jsonify({'error': filter_error}), 400
+
         # Get ALL maps from the database
         all_maps = session.query(Map).all()
 
@@ -149,6 +165,8 @@ def get_win_percentage_by_map(battle_tag):
                 )
             if hero_id:
                 query = query.filter(MatchPlayer.hero_id == hero_id)
+            for c in clauses:
+                query = query.filter(c)
             matches = query.distinct().all()
 
             win_stats = calculate_win_percentage(matches)
@@ -194,52 +212,71 @@ def get_map_stats(battle_tag, map_id):
         if not map_obj:
             return jsonify({'error': 'Map not found'}), 404
 
+        clauses, filter_error = parse_match_filters(request.args)
+        if filter_error:
+            return jsonify({'error': filter_error}), 400
+
         # Get matches on this map
-        matches = session.query(Match).join(
+        matches_q = session.query(Match).join(
             MatchPlayer, Match.match_id == MatchPlayer.match_id
         ).filter(
             MatchPlayer.player_id == player_id,
             Match.map_id == map_id
-        ).distinct().all()
+        )
+        for c in clauses:
+            matches_q = matches_q.filter(c)
+        matches = matches_q.distinct().all()
 
         # Get match players on this map
-        match_players = session.query(MatchPlayer).join(
+        match_players_q = session.query(MatchPlayer).join(
             Match, MatchPlayer.match_id == Match.match_id
         ).filter(
             MatchPlayer.player_id == player_id,
             Match.map_id == map_id
-        ).all()
+        )
+        for c in clauses:
+            match_players_q = match_players_q.filter(c)
+        match_players = match_players_q.all()
 
         win_stats = calculate_win_percentage(matches)
         performance_stats = aggregate_hero_stats(match_players)
 
         # Get distinct heroes played on this map, then compute full stats per hero
-        hero_ids = session.query(MatchPlayer.hero_id).join(
+        hero_ids_q = session.query(MatchPlayer.hero_id).join(
             Match, MatchPlayer.match_id == Match.match_id
         ).filter(
             MatchPlayer.player_id == player_id,
             Match.map_id == map_id
-        ).distinct().all()
+        )
+        for c in clauses:
+            hero_ids_q = hero_ids_q.filter(c)
+        hero_ids = hero_ids_q.distinct().all()
 
         heroes_played = []
         for (hero_id,) in hero_ids:
             hero = session.query(Hero).filter_by(hero_id=hero_id).first()
 
-            hero_matches = session.query(Match).join(
+            hero_matches_q = session.query(Match).join(
                 MatchPlayer, Match.match_id == MatchPlayer.match_id
             ).filter(
                 MatchPlayer.player_id == player_id,
                 MatchPlayer.hero_id == hero_id,
                 Match.map_id == map_id
-            ).distinct().all()
+            )
+            for c in clauses:
+                hero_matches_q = hero_matches_q.filter(c)
+            hero_matches = hero_matches_q.distinct().all()
 
-            hero_mps = session.query(MatchPlayer).join(
+            hero_mps_q = session.query(MatchPlayer).join(
                 Match, MatchPlayer.match_id == Match.match_id
             ).filter(
                 MatchPlayer.player_id == player_id,
                 MatchPlayer.hero_id == hero_id,
                 Match.map_id == map_id
-            ).all()
+            )
+            for c in clauses:
+                hero_mps_q = hero_mps_q.filter(c)
+            hero_mps = hero_mps_q.all()
 
             hero_win_stats = calculate_win_percentage(hero_matches)
             hero_perf_stats = aggregate_hero_stats(hero_mps)
@@ -295,14 +332,21 @@ def get_map_trends(battle_tag):
         if role and role not in ['tank', 'dps', 'support']:
             return jsonify({'error': 'Invalid role. Use tank, dps, or support'}), 400
 
+        clauses, filter_error = parse_match_filters(request.args)
+        if filter_error:
+            return jsonify({'error': filter_error}), 400
+
         # Get all maps the player has played on
-        maps = session.query(Map).join(
+        maps_q = session.query(Map).join(
             Match, Map.map_id == Match.map_id
         ).join(
             MatchPlayer, Match.match_id == MatchPlayer.match_id
         ).filter(
             MatchPlayer.player_id == player_id
-        ).distinct().all()
+        )
+        for c in clauses:
+            maps_q = maps_q.filter(c)
+        maps = maps_q.distinct().all()
 
         map_trends = []
         weakest_maps_data = []
@@ -319,6 +363,8 @@ def get_map_trends(battle_tag):
                 query = query.join(Hero, MatchPlayer.hero_id == Hero.hero_id).filter(
                     Hero.role == RoleEnum(role)
                 )
+            for c in clauses:
+                query = query.filter(c)
             matches = query.distinct().order_by(Match.date_time).all()
 
             # Calculate trends
