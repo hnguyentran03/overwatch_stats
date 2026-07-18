@@ -1238,6 +1238,28 @@ body {
 .lm-mode-btn.active { background: rgba(var(--accent-rgb), 0.25); border-color: var(--accent); color: var(--accent); }
 .lm-mode-btn:hover { border-color: var(--accent); color: var(--accent); }
 
+/* Size buttons */
+.lm-size-btns {
+  display: flex;
+  gap: 6px;
+}
+
+.lm-size-btn {
+  flex: 1;
+  padding: 7px 0;
+  border-radius: 5px;
+  border: 2px solid transparent;
+  font-size: 0.8rem;
+  font-weight: bold;
+  cursor: pointer;
+  background: rgba(255,255,255,0.07);
+  color: var(--text-muted);
+  transition: all 0.2s;
+}
+
+.lm-size-btn.active { background: rgba(var(--accent-rgb), 0.25); border-color: var(--accent); color: var(--accent); }
+.lm-size-btn:hover { border-color: var(--accent); color: var(--accent); }
+
 /* Team buttons */
 .lm-team-btn {
   flex: 1;

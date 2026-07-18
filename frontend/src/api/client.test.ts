@@ -101,6 +101,7 @@ describe('return values', () => {
       map_id: 1,
       outcome: 'win',
       game_mode: 'ranked',
+      team_size: '5v5',
       final_score: '2-1',
       duration: 15,
       players: [],
