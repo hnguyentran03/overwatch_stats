@@ -28,7 +28,6 @@ const Dashboard = () => {
   const fetchPlayerData = async (tag: string) => {
     setLoading(true);
     setNotFound(false);
-    setPlayerStats(null);
     try {
       const [stats, outcomes] = await Promise.all([
         getPlayerStats(tag, modeFilter, sizeFilter),
@@ -60,7 +59,7 @@ const Dashboard = () => {
   };
 
   const renderBody = () => {
-    if (loading) {
+    if (loading && !playerStats) {
       return <div className="loading">Loading player data...</div>;
     }
 
@@ -77,6 +76,32 @@ const Dashboard = () => {
     return (
       <>
         <h2 className="player-heading">{searchedTag}</h2>
+        <div className="filter-bar">
+          <div className="mode-filter" role="group" aria-label="Game mode filter">
+            {([['all', 'All'], ['ranked', 'Ranked'], ['unranked', 'Unranked']] as const).map(([value, label]) => (
+              <button
+                key={value}
+                className={modeFilter === value ? 'active' : ''}
+                aria-pressed={modeFilter === value}
+                onClick={() => setModeFilter(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="size-filter" role="group" aria-label="Team size filter">
+            {([['all', 'All'], ['5v5', '5v5'], ['6v6', '6v6']] as const).map(([value, label]) => (
+              <button
+                key={value}
+                className={sizeFilter === value ? 'active' : ''}
+                aria-pressed={sizeFilter === value}
+                onClick={() => setSizeFilter(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="stats-overview">
           <div className="stat-card">
             <h3>Total Matches</h3>
@@ -202,28 +227,6 @@ const Dashboard = () => {
           <button className="log-match-btn" onClick={() => setShowLogMatch(true)}>
             + Log Match
           </button>
-        </div>
-        <div className="mode-filter" role="group" aria-label="Game mode filter">
-          {([['all', 'All'], ['ranked', 'Ranked'], ['unranked', 'Unranked']] as const).map(([value, label]) => (
-            <button
-              key={value}
-              className={modeFilter === value ? 'active' : ''}
-              onClick={() => setModeFilter(value)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        <div className="size-filter" role="group" aria-label="Team size filter">
-          {([['all', 'All'], ['5v5', '5v5'], ['6v6', '6v6']] as const).map(([value, label]) => (
-            <button
-              key={value}
-              className={sizeFilter === value ? 'active' : ''}
-              onClick={() => setSizeFilter(value)}
-            >
-              {label}
-            </button>
-          ))}
         </div>
       </header>
 

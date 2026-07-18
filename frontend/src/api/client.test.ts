@@ -57,6 +57,13 @@ describe('query params', () => {
     });
   });
 
+  test('getMatches appends mode and size when not "all"', async () => {
+    await getMatches(undefined, undefined, 'ranked', '6v6');
+    expect(instance.get).toHaveBeenCalledWith('/matches', {
+      params: { mode: 'ranked', size: '6v6' },
+    });
+  });
+
   test('getWinPercentageByHero adds map_id only when provided', async () => {
     await getWinPercentageByHero('A#1', 5);
     expect(instance.get).toHaveBeenCalledWith(

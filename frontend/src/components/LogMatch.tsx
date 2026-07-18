@@ -39,6 +39,8 @@ interface LogMatchProps {
 interface HeroSelectProps {
   value: string;
   onChange: (value: string) => void;
+  heroRoleMap: Record<string, Role>;
+  herosByRole: Record<string, Hero[]>;
   availableRoles?: Role[] | null;
   requiredRole?: Role | null;
 }
@@ -79,6 +81,41 @@ const SIZE_RULES: Record<TeamSize, SizeRules> = {
 const ROLE_LABEL: Record<Role, string>  = { tank: 'T', dps: 'D', support: 'S' };
 const MAX_BAN_TOTAL = 2;
 const MAX_BAN_ROLE  = 2;
+
+// requiredRole: only show this one role (for swap heroes)
+const HeroSelect = ({ value, onChange, heroRoleMap, herosByRole, availableRoles = null, requiredRole = null }: HeroSelectProps) => {
+  const baseRoles: Role[] = requiredRole
+    ? [requiredRole]
+    : (availableRoles || (['tank', 'dps', 'support'] as Role[]));
+  // Always include the currently-selected hero's role, so an autofilled or
+  // already-chosen hero never renders as blank when its role slot reads as
+  // "full" (e.g. after a scoreboard autofill fills every role).
+  const valueRole = heroRoleMap[value];
+  const roles: Role[] = valueRole && !baseRoles.includes(valueRole)
+    ? [...baseRoles, valueRole]
+    : baseRoles;
+
+  if (roles.length === 0) {
+    return (
+      <div className="lm-input lm-no-roles">All roles filled on this team</div>
+    );
+  }
+
+  return (
+    <select value={value} onChange={e => onChange(e.target.value)} className="lm-select" required>
+      <option value="">Select hero</option>
+      {roles.map(role =>
+        herosByRole[role] ? (
+          <optgroup key={role} label={role.toUpperCase()}>
+            {herosByRole[role].map(h => (
+              <option key={h.hero_id} value={h.hero_name}>{h.hero_name}</option>
+            ))}
+          </optgroup>
+        ) : null
+      )}
+    </select>
+  );
+};
 
 const LogMatch = ({ onSuccess, onCancel }: LogMatchProps) => {
   const [heroes, setHeroes] = useState<Hero[]>([]);
@@ -397,40 +434,6 @@ const LogMatch = ({ onSuccess, onCancel }: LogMatchProps) => {
   // ── sub-components ──
 
   // availableRoles: only show these role groups (for primary hero)
-  // requiredRole: only show this one role (for swap heroes)
-  const HeroSelect = ({ value, onChange, availableRoles = null, requiredRole = null }: HeroSelectProps) => {
-    const baseRoles: Role[] = requiredRole
-      ? [requiredRole]
-      : (availableRoles || (['tank', 'dps', 'support'] as Role[]));
-    // Always include the currently-selected hero's role, so an autofilled or
-    // already-chosen hero never renders as blank when its role slot reads as
-    // "full" (e.g. after a scoreboard autofill fills every role).
-    const valueRole = heroRoleMap[value];
-    const roles: Role[] = valueRole && !baseRoles.includes(valueRole)
-      ? [...baseRoles, valueRole]
-      : baseRoles;
-
-    if (roles.length === 0) {
-      return (
-        <div className="lm-input lm-no-roles">All roles filled on this team</div>
-      );
-    }
-
-    return (
-      <select value={value} onChange={e => onChange(e.target.value)} className="lm-select" required>
-        <option value="">Select hero</option>
-        {roles.map(role =>
-          herosByRole[role] ? (
-            <optgroup key={role} label={role.toUpperCase()}>
-              {herosByRole[role].map(h => (
-                <option key={h.hero_id} value={h.hero_name}>{h.hero_name}</option>
-              ))}
-            </optgroup>
-          ) : null
-        )}
-      </select>
-    );
-  };
 
   const TeamCompBadge = ({ team }: { team: Team }) => {
     const comp = getTeamComp(team);
@@ -710,12 +713,16 @@ const LogMatch = ({ onSuccess, onCancel }: LogMatchProps) => {
                         <HeroSelect
                           value={heroSlot.hero_name}
                           onChange={v => handlePrimaryHeroChange(pi, v)}
+                          heroRoleMap={heroRoleMap}
+                          herosByRole={herosByRole}
                           availableRoles={availableRoles}
                         />
                       ) : (
                         <HeroSelect
                           value={heroSlot.hero_name}
                           onChange={v => setHeroField(pi, hi, 'hero_name', v)}
+                          heroRoleMap={heroRoleMap}
+                          herosByRole={herosByRole}
                           requiredRole={primaryRole}
                         />
                       )}

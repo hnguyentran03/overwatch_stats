@@ -42,11 +42,15 @@ const appendSize = (params: Record<string, string | number>, size: SizeFilter) =
 
 export const getMatches = async (
   startDate?: string,
-  endDate?: string
+  endDate?: string,
+  mode: ModeFilter = 'all',
+  size: SizeFilter = 'all'
 ): Promise<MatchesResponse> => {
-  const params: Record<string, string> = {};
+  const params: Record<string, string | number> = {};
   if (startDate) params.start_date = startDate;
   if (endDate) params.end_date = endDate;
+  appendMode(params, mode);
+  appendSize(params, size);
   const response = await apiClient.get('/matches', { params });
   return response.data;
 };
