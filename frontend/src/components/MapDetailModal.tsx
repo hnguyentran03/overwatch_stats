@@ -8,10 +8,10 @@ interface MapDetailModalProps {
   playerId: string;
   onClose: () => void;
   roleFilter?: Role | 'all';
-  mode?: ModeFilter;
+  mode: ModeFilter;
 }
 
-const MapDetailModal = ({ map, playerId, onClose, roleFilter = 'all', mode = 'all' }: MapDetailModalProps) => {
+const MapDetailModal = ({ map, playerId, onClose, roleFilter = 'all', mode }: MapDetailModalProps) => {
   const [heroStats, setHeroStats] = useState<HeroStat[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
