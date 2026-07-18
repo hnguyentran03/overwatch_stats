@@ -20,6 +20,8 @@ const makeMatch = (overrides: Partial<MatchOutcome> = {}): MatchOutcome => ({
   damage_done: 5000,
   healing_done: 3000,
   damage_mitigated: 0,
+  game_mode: 'ranked',
+  team_size: '5v5',
   ...overrides,
 });
 
@@ -88,6 +90,16 @@ describe('MatchHistory', () => {
     render(<MatchHistory matches={[makeMatch({ match_id: 99 })]} onMatchClick={onMatchClick} />);
     fireEvent.click(screen.getByText("King's Row").closest('tr') as HTMLElement);
     expect(onMatchClick).toHaveBeenCalledWith(99);
+  });
+
+  test('renders the game mode badge', () => {
+    render(<MatchHistory matches={[makeMatch({ game_mode: 'unranked' })]} />);
+    expect(screen.getByText('Unranked')).toBeInTheDocument();
+  });
+
+  test('renders the team size badge', () => {
+    render(<MatchHistory matches={[makeMatch({ team_size: '6v6' })]} />);
+    expect(screen.getByText('6v6')).toBeInTheDocument();
   });
 
   test('paginates with See More button', () => {

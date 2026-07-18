@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { getHeroes, getMaps, createMatch, parseScoreboard } from '../api/client';
-import type { Hero, GameMap, Role, Team, CreateMatchPayload } from '../types';
+import type { Hero, GameMap, Role, Team, CreateMatchPayload, GameMode, TeamSize } from '../types';
 
 interface HeroSlotForm {
   hero_name: string;
@@ -23,6 +23,8 @@ interface MatchForm {
   date_time: string;
   map_id: number | string;
   outcome: 'win' | 'loss' | 'draw';
+  game_mode: GameMode;
+  team_size: TeamSize;
   final_score: string;
   duration: string;
   players: PlayerForm[];
@@ -37,6 +39,8 @@ interface LogMatchProps {
 interface HeroSelectProps {
   value: string;
   onChange: (value: string) => void;
+  heroRoleMap: Record<string, Role>;
+  herosByRole: Record<string, Hero[]>;
   availableRoles?: Role[] | null;
   requiredRole?: Role | null;
 }
@@ -65,10 +69,53 @@ const now = (): string => {
   return d.toISOString().slice(0, 16);
 };
 
-const ROLE_LIMITS: Record<Role, number> = { tank: 1, dps: 2, support: 2 };
+interface SizeRules {
+  totalPlayers: number;
+  roleMax: Record<Role, number>;          // hard cap per role (used for dropdown gating + >max errors)
+  roleExact: Partial<Record<Role, number>>; // roles that must equal an exact count
+}
+const SIZE_RULES: Record<TeamSize, SizeRules> = {
+  '5v5': { totalPlayers: 5, roleMax: { tank: 1, dps: 2, support: 2 }, roleExact: { tank: 1, dps: 2, support: 2 } },
+  '6v6': { totalPlayers: 6, roleMax: { tank: 2, dps: 6, support: 6 }, roleExact: {} },
+};
 const ROLE_LABEL: Record<Role, string>  = { tank: 'T', dps: 'D', support: 'S' };
 const MAX_BAN_TOTAL = 2;
 const MAX_BAN_ROLE  = 2;
+
+// requiredRole: only show this one role (for swap heroes)
+const HeroSelect = ({ value, onChange, heroRoleMap, herosByRole, availableRoles = null, requiredRole = null }: HeroSelectProps) => {
+  const baseRoles: Role[] = requiredRole
+    ? [requiredRole]
+    : (availableRoles || (['tank', 'dps', 'support'] as Role[]));
+  // Always include the currently-selected hero's role, so an autofilled or
+  // already-chosen hero never renders as blank when its role slot reads as
+  // "full" (e.g. after a scoreboard autofill fills every role).
+  const valueRole = heroRoleMap[value];
+  const roles: Role[] = valueRole && !baseRoles.includes(valueRole)
+    ? [...baseRoles, valueRole]
+    : baseRoles;
+
+  if (roles.length === 0) {
+    return (
+      <div className="lm-input lm-no-roles">All roles filled on this team</div>
+    );
+  }
+
+  return (
+    <select value={value} onChange={e => onChange(e.target.value)} className="lm-select" required>
+      <option value="">Select hero</option>
+      {roles.map(role =>
+        herosByRole[role] ? (
+          <optgroup key={role} label={role.toUpperCase()}>
+            {herosByRole[role].map(h => (
+              <option key={h.hero_id} value={h.hero_name}>{h.hero_name}</option>
+            ))}
+          </optgroup>
+        ) : null
+      )}
+    </select>
+  );
+};
 
 const LogMatch = ({ onSuccess, onCancel }: LogMatchProps) => {
   const [heroes, setHeroes] = useState<Hero[]>([]);
@@ -84,6 +131,8 @@ const LogMatch = ({ onSuccess, onCancel }: LogMatchProps) => {
     date_time: now(),
     map_id: '',
     outcome: 'win',
+    game_mode: 'ranked',
+    team_size: '5v5',
     final_score: '',
     duration: '',
     players: [{ ...EMPTY_PLAYER }],
@@ -128,6 +177,8 @@ const LogMatch = ({ onSuccess, onCancel }: LogMatchProps) => {
 
   // ── team composition ──
 
+  const rules = SIZE_RULES[form.team_size];
+
   // Count roles for a team, optionally excluding one player index
   const getTeamComp = (team: Team, excludeIdx = -1): TeamComp => {
     const counts: TeamComp = { tank: 0, dps: 0, support: 0, total: 0 };
@@ -143,7 +194,8 @@ const LogMatch = ({ onSuccess, onCancel }: LogMatchProps) => {
   // Roles still open on a team when excluding player pi
   const getAvailableRoles = (team: Team, pi: number): Role[] => {
     const comp = getTeamComp(team, pi);
-    return (['tank', 'dps', 'support'] as Role[]).filter(role => comp[role] < ROLE_LIMITS[role]);
+    if (comp.total >= rules.totalPlayers) return [];
+    return (['tank', 'dps', 'support'] as Role[]).filter(role => comp[role] < rules.roleMax[role]);
   };
 
   // Whether switching player pi to targetTeam is allowed
@@ -151,20 +203,33 @@ const LogMatch = ({ onSuccess, onCancel }: LogMatchProps) => {
     const player = form.players[pi];
     if (player.team === targetTeam) return true;
     const comp = getTeamComp(targetTeam);
-    if (comp.total >= 5) return false;
+    if (comp.total >= rules.totalPlayers) return false;
     const primaryRole = heroRoleMap[player.heroes[0]?.hero_name];
-    if (primaryRole && comp[primaryRole] >= ROLE_LIMITS[primaryRole]) return false;
+    if (primaryRole && comp[primaryRole] >= rules.roleMax[primaryRole]) return false;
     return true;
   };
 
+  const ROLE_NAME: Record<Role, string> = { tank: 'Tank', dps: 'Damage', support: 'Support' };
+  // 'Damage' never pluralizes; Tank/Support get an 's' above 1 — this exactly
+  // reproduces today's messages ("needs 1 Tank", "needs 2 Damage", "needs 2 Supports"),
+  // which existing tests assert on.
+  const roleLabel = (role: Role, n: number): string =>
+    role === 'dps' || n === 1 ? ROLE_NAME[role] : `${ROLE_NAME[role]}s`;
   const getCompErrors = (team: Team): string[] => {
     const comp = getTeamComp(team);
     const label = team === 'team1' ? 'Team 1' : 'Team 2';
     const errs: string[] = [];
-    if (comp.total > 5)     errs.push(`${label}: too many players (${comp.total}/5)`);
-    if (comp.tank !== 1)    errs.push(`${label}: needs 1 Tank (has ${comp.tank})`);
-    if (comp.dps !== 2)     errs.push(`${label}: needs 2 Damage (has ${comp.dps})`);
-    if (comp.support !== 2) errs.push(`${label}: needs 2 Supports (has ${comp.support})`);
+    if (comp.total !== rules.totalPlayers) {
+      errs.push(`${label}: needs ${rules.totalPlayers} players (has ${comp.total})`);
+    }
+    (['tank', 'dps', 'support'] as Role[]).forEach(role => {
+      const exact = rules.roleExact[role];
+      if (exact !== undefined && comp[role] !== exact) {
+        errs.push(`${label}: needs ${exact} ${roleLabel(role, exact)} (has ${comp[role]})`);
+      } else if (exact === undefined && comp[role] > rules.roleMax[role]) {
+        errs.push(`${label}: at most ${rules.roleMax[role]} ${roleLabel(role, rules.roleMax[role])} (has ${comp[role]})`);
+      }
+    });
     return errs;
   };
 
@@ -329,6 +394,8 @@ const LogMatch = ({ onSuccess, onCancel }: LogMatchProps) => {
       date_time: form.date_time,
       map_id: parseInt(String(form.map_id)),
       outcome: form.outcome,
+      game_mode: form.game_mode,
+      team_size: form.team_size,
       final_score: form.final_score.trim(),
       duration: form.duration !== '' ? parseFloat(form.duration) : 0,
       players: form.players
@@ -367,57 +434,22 @@ const LogMatch = ({ onSuccess, onCancel }: LogMatchProps) => {
   // ── sub-components ──
 
   // availableRoles: only show these role groups (for primary hero)
-  // requiredRole: only show this one role (for swap heroes)
-  const HeroSelect = ({ value, onChange, availableRoles = null, requiredRole = null }: HeroSelectProps) => {
-    const baseRoles: Role[] = requiredRole
-      ? [requiredRole]
-      : (availableRoles || (['tank', 'dps', 'support'] as Role[]));
-    // Always include the currently-selected hero's role, so an autofilled or
-    // already-chosen hero never renders as blank when its role slot reads as
-    // "full" (e.g. after a scoreboard autofill fills every role).
-    const valueRole = heroRoleMap[value];
-    const roles: Role[] = valueRole && !baseRoles.includes(valueRole)
-      ? [...baseRoles, valueRole]
-      : baseRoles;
-
-    if (roles.length === 0) {
-      return (
-        <div className="lm-input lm-no-roles">All roles filled on this team</div>
-      );
-    }
-
-    return (
-      <select value={value} onChange={e => onChange(e.target.value)} className="lm-select" required>
-        <option value="">Select hero</option>
-        {roles.map(role =>
-          herosByRole[role] ? (
-            <optgroup key={role} label={role.toUpperCase()}>
-              {herosByRole[role].map(h => (
-                <option key={h.hero_id} value={h.hero_name}>{h.hero_name}</option>
-              ))}
-            </optgroup>
-          ) : null
-        )}
-      </select>
-    );
-  };
 
   const TeamCompBadge = ({ team }: { team: Team }) => {
     const comp = getTeamComp(team);
     const errs = getCompErrors(team);
     return (
       <div className={`lm-comp-badge${errs.length ? ' lm-comp-error' : ''}`}>
-        <span className="lm-comp-role lm-comp-tank">
-          {ROLE_LABEL.tank} {comp.tank}/{ROLE_LIMITS.tank}
-        </span>
-        <span className="lm-comp-role lm-comp-dps">
-          {ROLE_LABEL.dps} {comp.dps}/{ROLE_LIMITS.dps}
-        </span>
-        <span className="lm-comp-role lm-comp-support">
-          {ROLE_LABEL.support} {comp.support}/{ROLE_LIMITS.support}
-        </span>
+        {(['tank', 'dps', 'support'] as Role[]).map(role => {
+          const capped = rules.roleExact[role] !== undefined || rules.roleMax[role] < rules.totalPlayers;
+          return (
+            <span key={role} className={`lm-comp-role lm-comp-${role}`}>
+              {ROLE_LABEL[role]} {comp[role]}{capped ? `/${rules.roleMax[role]}` : ''}
+            </span>
+          );
+        })}
         <span className="lm-comp-total">
-          {comp.total}/5 players
+          {comp.total}/{rules.totalPlayers} players
         </span>
       </div>
     );
@@ -538,6 +570,38 @@ const LogMatch = ({ onSuccess, onCancel }: LogMatchProps) => {
             </div>
 
             <div className="lm-field">
+              <label>Game Mode</label>
+              <div className="lm-mode-btns">
+                {(['ranked', 'unranked'] as const).map(mode => (
+                  <button
+                    key={mode}
+                    type="button"
+                    className={`lm-mode-btn${form.game_mode === mode ? ' active' : ''}`}
+                    onClick={() => setMatchField('game_mode', mode)}
+                  >
+                    {mode === 'ranked' ? 'Ranked' : 'Unranked'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="lm-field">
+              <label>Team Size</label>
+              <div className="lm-size-btns">
+                {(['5v5', '6v6'] as const).map(size => (
+                  <button
+                    key={size}
+                    type="button"
+                    className={`lm-size-btn${form.team_size === size ? ' active' : ''}`}
+                    onClick={() => setMatchField('team_size', size)}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="lm-field">
               <label>Final Score</label>
               <input
                 type="text"
@@ -609,7 +673,7 @@ const LogMatch = ({ onSuccess, onCancel }: LogMatchProps) => {
                       let title = '';
                       if (!allowed && !active) {
                         const comp = getTeamComp(t);
-                        if (comp.total >= 5) title = `${t === 'team1' ? 'Team 1' : 'Team 2'} is full (5/5)`;
+                        if (comp.total >= rules.totalPlayers) title = `${t === 'team1' ? 'Team 1' : 'Team 2'} is full (${rules.totalPlayers}/${rules.totalPlayers})`;
                         else title = `${primaryRole} slot is full on ${t === 'team1' ? 'Team 1' : 'Team 2'}`;
                       }
                       return (
@@ -649,12 +713,16 @@ const LogMatch = ({ onSuccess, onCancel }: LogMatchProps) => {
                         <HeroSelect
                           value={heroSlot.hero_name}
                           onChange={v => handlePrimaryHeroChange(pi, v)}
+                          heroRoleMap={heroRoleMap}
+                          herosByRole={herosByRole}
                           availableRoles={availableRoles}
                         />
                       ) : (
                         <HeroSelect
                           value={heroSlot.hero_name}
                           onChange={v => setHeroField(pi, hi, 'hero_name', v)}
+                          heroRoleMap={heroRoleMap}
+                          herosByRole={herosByRole}
                           requiredRole={primaryRole}
                         />
                       )}

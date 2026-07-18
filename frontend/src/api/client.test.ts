@@ -34,7 +34,7 @@ beforeEach(() => {
 describe('battle tag encoding', () => {
   test('encodes the # in battle tags', async () => {
     await getPlayerStats('PlayerOne#1234');
-    expect(instance.get).toHaveBeenCalledWith('/players/PlayerOne%231234/stats');
+    expect(instance.get).toHaveBeenCalledWith('/players/PlayerOne%231234/stats', { params: {} });
   });
 
   test('encodes special characters in win_percentage/hero path', async () => {
@@ -54,6 +54,13 @@ describe('query params', () => {
     await getMatches('2026-01-01', '2026-02-01');
     expect(instance.get).toHaveBeenCalledWith('/matches', {
       params: { start_date: '2026-01-01', end_date: '2026-02-01' },
+    });
+  });
+
+  test('getMatches appends mode and size when not "all"', async () => {
+    await getMatches(undefined, undefined, 'ranked', '6v6');
+    expect(instance.get).toHaveBeenCalledWith('/matches', {
+      params: { mode: 'ranked', size: '6v6' },
     });
   });
 
@@ -79,6 +86,13 @@ describe('query params', () => {
       params: { time_window: 'week' },
     });
   });
+
+  test('getPlayerStats adds mode only when not "all"', async () => {
+    await getPlayerStats('A#1', 'ranked');
+    expect(instance.get).toHaveBeenCalledWith('/players/A%231/stats', {
+      params: { mode: 'ranked' },
+    });
+  });
 });
 
 describe('return values', () => {
@@ -93,6 +107,8 @@ describe('return values', () => {
       date_time: '2026-01-01T00:00:00',
       map_id: 1,
       outcome: 'win',
+      game_mode: 'ranked',
+      team_size: '5v5',
       final_score: '2-1',
       duration: 15,
       players: [],

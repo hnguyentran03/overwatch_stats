@@ -61,6 +61,10 @@ const MatchHistory = ({ matches, onMatchClick }: MatchHistoryProps) => {
                 <div className="map-info">
                   <strong>{match.map_name}</strong>
                   <span className="map-type">{match.map_type}</span>
+                  <span className={`mode-badge mode-${match.game_mode}`}>
+                    {match.game_mode === 'ranked' ? 'Ranked' : 'Unranked'}
+                  </span>
+                  <span className={`size-badge size-${match.team_size}`}>{match.team_size}</span>
                 </div>
               </td>
               <td>

@@ -1,8 +1,9 @@
 from flask import Blueprint, jsonify, request, current_app
-from models import Match, BannedHero, Hero, Map, Player, MatchPlayer, OutcomeEnum, TeamEnum
+from models import Match, BannedHero, Hero, Map, Player, MatchPlayer, OutcomeEnum, TeamEnum, GameModeEnum, TeamSizeEnum
 from utils.db import get_db
 from utils.scoreboard import parse_scoreboard, ScoreboardConfigError
 from utils.rate_limit import SlidingWindowLimiter
+from utils.filters import parse_match_filters
 from datetime import datetime
 
 matches_bp = Blueprint('matches', __name__)
@@ -51,7 +52,7 @@ def create_match():
     if not data:
         return jsonify({'error': 'No data provided'}), 400
 
-    for field in ['date_time', 'map_id', 'final_score', 'outcome']:
+    for field in ['date_time', 'map_id', 'final_score', 'outcome', 'game_mode', 'team_size']:
         if field not in data:
             return jsonify({'error': f'Missing required field: {field}'}), 400
 
@@ -62,6 +63,16 @@ def create_match():
             outcome = OutcomeEnum(data['outcome'])
         except ValueError:
             return jsonify({'error': 'Invalid outcome. Must be win, loss, or draw'}), 400
+
+        try:
+            game_mode = GameModeEnum(data['game_mode'])
+        except ValueError:
+            return jsonify({'error': 'Invalid game_mode. Must be ranked or unranked'}), 400
+
+        try:
+            team_size = TeamSizeEnum(data['team_size'])
+        except ValueError:
+            return jsonify({'error': 'Invalid team_size. Must be 5v5 or 6v6'}), 400
 
         try:
             date_time = datetime.fromisoformat(data['date_time'])
@@ -77,7 +88,9 @@ def create_match():
             map_id=data['map_id'],
             final_score=data['final_score'],
             outcome=outcome,
-            duration=float(data.get('duration', 0.0))
+            duration=float(data.get('duration', 0.0)),
+            game_mode=game_mode,
+            team_size=team_size,
         )
         session.add(match)
         session.flush()
@@ -213,6 +226,12 @@ def get_matches():
     try:
         query = session.query(Match)
 
+        clauses, filter_error = parse_match_filters(request.args)
+        if filter_error:
+            return jsonify({'error': filter_error}), 400
+        for clause in clauses:
+            query = query.filter(clause)
+
         # Apply date filtering
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
@@ -242,7 +261,9 @@ def get_matches():
                 'map_name': match.map.map_name,
                 'map_type': match.map.map_type.value,
                 'final_score': match.final_score,
-                'outcome': match.outcome.value
+                'outcome': match.outcome.value,
+                'game_mode': match.game_mode.value,
+                'team_size': match.team_size.value
             })
 
         return jsonify({
@@ -346,6 +367,8 @@ def get_match_details(match_id):
             'map_type': match.map.map_type.value,
             'final_score': match.final_score,
             'outcome': match.outcome.value,
+            'game_mode': match.game_mode.value,
+            'team_size': match.team_size.value,
             'duration': match.duration,
             'players': players_result,
             'bans': bans,

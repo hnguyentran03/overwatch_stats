@@ -5,7 +5,7 @@ Drops and recreates all data on every run.
 from datetime import datetime, timedelta
 import random
 from utils.db import init_db
-from models import Player, Match, MatchPlayer, Hero, Map, BannedHero, OutcomeEnum, TeamEnum
+from models import Player, Match, MatchPlayer, Hero, Map, BannedHero, OutcomeEnum, TeamEnum, GameModeEnum, TeamSizeEnum
 from config import DevelopmentConfig
 
 FILLER_COUNT = 25
@@ -58,6 +58,19 @@ def make_stats(role, outcome):
     return elims, final_blows, assists, deaths, damage, healing, mitigation
 
 
+def make_team_comp(total):
+    """A role list of length `total` for one team, tanks capped at 2 in 6v6."""
+    if total == 5:
+        roles = ['tank', 'dps', 'dps', 'support', 'support']
+    else:  # 6v6, tanks capped at 2; at least one of each role
+        tanks = random.choice([1, 2, 2])
+        remaining = total - tanks
+        dps = random.randint(1, remaining - 1)
+        roles = ['tank'] * tanks + ['dps'] * dps + ['support'] * (remaining - dps)
+    random.shuffle(roles)
+    return roles
+
+
 def add_match(session, player, hero_pool, maps, start_date, day_range, filler_players, heroes_by_role):
     days_offset = random.randint(0, day_range)
     hours_offset = random.randint(0, 23)
@@ -76,6 +89,8 @@ def add_match(session, player, hero_pool, maps, start_date, day_range, filler_pl
         final_score=score,
         outcome=outcome,
         duration=round(random.uniform(10, 22), 2),
+        game_mode=random.choices([GameModeEnum.ranked, GameModeEnum.unranked], weights=[60, 40])[0],
+        team_size=random.choice([TeamSizeEnum.five_v_five, TeamSizeEnum.six_v_six]),
     )
     session.add(match)
     session.flush()
@@ -130,18 +145,18 @@ def add_match(session, player, hero_pool, maps, start_date, day_range, filler_pl
             time_played=round(frac * match.duration, 2),
         ))
 
-    # 9 filler players: 4 complete team1 (1T2D2S), 5 fill team2 (1T2D2S)
-    team1_roles = {'tank': 1, 'dps': 2, 'support': 2}
-    team1_roles[tracked_role] -= 1
-    team1_role_list = []
-    for role, count in team1_roles.items():
-        team1_role_list.extend([role] * count)
-    random.shuffle(team1_role_list)
+    # Build size-appropriate rosters: 5v5 = 1T/2D/2S per team; 6v6 = 6 players
+    # per team with at most 2 tanks (DPS/Support unrestricted), matching the
+    # composition rules enforced in the match-logging form.
+    team_total = 5 if match.team_size == TeamSizeEnum.five_v_five else 6
 
-    team2_role_list = ['tank', 'dps', 'dps', 'support', 'support']
-    random.shuffle(team2_role_list)
+    # Team 1 includes the tracked player (already placed above as tracked_role);
+    # drop one slot of that role from team 1's remaining filler needs.
+    team1_role_list = make_team_comp(team_total)
+    team1_role_list.remove(tracked_role)
+    team2_role_list = make_team_comp(team_total)
 
-    chosen_fillers = random.sample(filler_players, 9)
+    chosen_fillers = random.sample(filler_players, len(team1_role_list) + len(team2_role_list))
     slots = [(r, TeamEnum.team1) for r in team1_role_list] + [(r, TeamEnum.team2) for r in team2_role_list]
 
     for filler, (filler_role, filler_team) in zip(chosen_fillers, slots):

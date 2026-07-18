@@ -9,7 +9,7 @@ BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BACKEND_DIR not in sys.path:
     sys.path.insert(0, BACKEND_DIR)
 
-from models import OutcomeEnum, TeamEnum  # noqa: E402
+from models import OutcomeEnum, TeamEnum, GameModeEnum  # noqa: E402
 
 
 class TestHealth:
@@ -52,6 +52,8 @@ class TestCreateMatch:
             "map_id": map_id,
             "final_score": "2-1",
             "outcome": "win",
+            "game_mode": "ranked",
+            "team_size": "5v5",
             "duration": 15.0,
             "players": [
                 {
@@ -113,6 +115,59 @@ class TestCreateMatch:
             "/api/matches", json=self._payload(map_id, date_time="not-a-date")
         )
         assert resp.status_code == 400
+
+    def test_missing_game_mode_returns_400(self, client, map_by_name):
+        map_obj = map_by_name("King's Row")
+        payload = self._payload(map_obj.map_id)
+        del payload["game_mode"]
+        resp = client.post("/api/matches", json=payload)
+        assert resp.status_code == 400
+        assert "game_mode" in resp.get_json()["error"]
+
+    def test_invalid_game_mode_returns_400(self, client, map_by_name):
+        map_obj = map_by_name("King's Row")
+        payload = self._payload(map_obj.map_id)
+        payload["game_mode"] = "bogus"
+        resp = client.post("/api/matches", json=payload)
+        assert resp.status_code == 400
+        assert "game_mode" in resp.get_json()["error"]
+
+    def test_creates_with_game_mode(self, client, map_by_name, session):
+        from models import Match
+        map_obj = map_by_name("King's Row")
+        payload = self._payload(map_obj.map_id)
+        payload["game_mode"] = "unranked"
+        resp = client.post("/api/matches", json=payload)
+        assert resp.status_code == 201
+        mid = resp.get_json()["match_id"]
+        from models import GameModeEnum
+        stored = session.query(Match).filter_by(match_id=mid).first()
+        assert stored.game_mode == GameModeEnum.unranked
+
+    def test_missing_team_size_returns_400(self, client, map_by_name):
+        map_obj = map_by_name("King's Row")
+        payload = self._payload(map_obj.map_id)
+        del payload["team_size"]
+        resp = client.post("/api/matches", json=payload)
+        assert resp.status_code == 400
+        assert "team_size" in resp.get_json()["error"]
+
+    def test_invalid_team_size_returns_400(self, client, map_by_name):
+        map_obj = map_by_name("King's Row")
+        payload = self._payload(map_obj.map_id)
+        payload["team_size"] = "7v7"
+        resp = client.post("/api/matches", json=payload)
+        assert resp.status_code == 400
+
+    def test_creates_with_team_size(self, client, map_by_name, session):
+        from models import Match, TeamSizeEnum
+        map_obj = map_by_name("King's Row")
+        payload = self._payload(map_obj.map_id)
+        payload["team_size"] = "6v6"
+        resp = client.post("/api/matches", json=payload)
+        assert resp.status_code == 201
+        stored = session.query(Match).filter_by(match_id=resp.get_json()["match_id"]).first()
+        assert stored.team_size == TeamSizeEnum.six_v_six
 
     def test_unknown_map_returns_404(self, client):
         resp = client.post("/api/matches", json=self._payload(999999))
@@ -298,3 +353,93 @@ class TestParseScoreboard:
             assert self._upload(client, monkeypatch, no_key).status_code == 503
         # ...so a real call still succeeds.
         assert self._upload(client, monkeypatch, lambda *a, **k: []).status_code == 200
+
+
+class TestMatchesModeFilter:
+    def test_filters_matches_by_mode(self, client, make_player, add_match):
+        from models import GameModeEnum
+        player = make_player()
+        add_match(player, game_mode=GameModeEnum.ranked)
+        add_match(player, game_mode=GameModeEnum.unranked)
+        add_match(player, game_mode=GameModeEnum.unranked)
+
+        resp = client.get("/api/matches?mode=ranked")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data["count"] == 1
+        assert all(m["game_mode"] == "ranked" for m in data["matches"])
+
+        resp = client.get("/api/matches?mode=unranked")
+        assert resp.get_json()["count"] == 2
+
+    def test_mode_all_returns_everything(self, client, make_player, add_match):
+        from models import GameModeEnum
+        player = make_player()
+        add_match(player, game_mode=GameModeEnum.ranked)
+        add_match(player, game_mode=GameModeEnum.unranked)
+        assert client.get("/api/matches?mode=all").get_json()["count"] == 2
+        assert client.get("/api/matches").get_json()["count"] == 2
+
+    def test_invalid_mode_returns_400(self, client):
+        resp = client.get("/api/matches?mode=bogus")
+        assert resp.status_code == 400
+
+    def test_matches_response_includes_game_mode(self, client, make_player, add_match):
+        player = make_player()
+        add_match(player)
+        m = client.get("/api/matches").get_json()["matches"][0]
+        assert m["game_mode"] == "ranked"
+
+
+class TestGameModeColumn:
+    def test_add_match_defaults_to_ranked(self, add_match, make_player, session):
+        from models import Match
+        player = make_player()
+        match = add_match(player)
+        stored = session.query(Match).filter_by(match_id=match.match_id).first()
+        assert stored.game_mode == GameModeEnum.ranked
+
+    def test_add_match_accepts_unranked(self, add_match, make_player, session):
+        from models import Match
+        player = make_player()
+        match = add_match(player, game_mode=GameModeEnum.unranked)
+        stored = session.query(Match).filter_by(match_id=match.match_id).first()
+        assert stored.game_mode == GameModeEnum.unranked
+
+
+class TestTeamSizeColumn:
+    def test_add_match_defaults_to_5v5(self, add_match, make_player, session):
+        from models import Match, TeamSizeEnum
+        player = make_player()
+        match = add_match(player)
+        stored = session.query(Match).filter_by(match_id=match.match_id).first()
+        assert stored.team_size == TeamSizeEnum.five_v_five
+        assert stored.team_size.value == "5v5"
+
+    def test_add_match_accepts_6v6(self, add_match, make_player, session):
+        from models import Match, TeamSizeEnum
+        player = make_player()
+        match = add_match(player, team_size=TeamSizeEnum.six_v_six)
+        stored = session.query(Match).filter_by(match_id=match.match_id).first()
+        assert stored.team_size.value == "6v6"
+
+
+class TestMatchesSizeFilter:
+    def test_filters_by_size_and_combines_with_mode(self, client, make_player, add_match):
+        from models import GameModeEnum, TeamSizeEnum
+        player = make_player()
+        add_match(player, game_mode=GameModeEnum.ranked, team_size=TeamSizeEnum.five_v_five)
+        add_match(player, game_mode=GameModeEnum.ranked, team_size=TeamSizeEnum.six_v_six)
+        add_match(player, game_mode=GameModeEnum.unranked, team_size=TeamSizeEnum.six_v_six)
+
+        assert client.get("/api/matches?size=6v6").get_json()["count"] == 2
+        assert client.get("/api/matches?size=5v5").get_json()["count"] == 1
+        assert client.get("/api/matches?mode=ranked&size=6v6").get_json()["count"] == 1
+
+    def test_invalid_size_returns_400(self, client):
+        assert client.get("/api/matches?size=7v7").status_code == 400
+
+    def test_response_includes_team_size(self, client, make_player, add_match):
+        player = make_player()
+        add_match(player)
+        assert client.get("/api/matches").get_json()["matches"][0]["team_size"] == "5v5"

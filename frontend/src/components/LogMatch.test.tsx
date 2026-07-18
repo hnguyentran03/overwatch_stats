@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import LogMatch from './LogMatch';
 import { getHeroes, getMaps, createMatch, parseScoreboard } from '../api/client';
 
@@ -38,6 +38,91 @@ const renderLogMatch = async () => {
 };
 
 describe('LogMatch', () => {
+  // team1 players occupy combobox indices 1..5, team2 players 6..10 (index 0 is the map select).
+  const ROLE_FILL: Array<string> = ['Reinhardt', 'Genji', 'Tracer', 'Ana', 'Kiriko'];
+  const fillValidFiveVFive = async () => {
+    for (let i = 1; i < 10; i++) fireEvent.click(screen.getByText('+ Add Another Player'));
+    fireEvent.change(screen.getByPlaceholderText('e.g. 3-2'), { target: { value: '2-1' } });
+    const tags = screen.getAllByPlaceholderText('Name#1234');
+    tags.forEach((t, i) => fireEvent.change(t, { target: { value: `P${i}#100${i}` } }));
+    // Move players 5..9 to Team 2 before assigning heroes (no heroes yet ⇒ no role-full block).
+    for (let i = 5; i < 10; i++) {
+      const section = tags[i].closest('.lm-player-section') as HTMLElement;
+      fireEvent.click(within(section).getByRole('button', { name: 'Team 2' }));
+    }
+    // Assign primary heroes: same 1T/2D/2S fill for each team, in role-available order.
+    // Re-query comboboxes on every iteration: the role-filtered <select> for a
+    // later player is replaced by React after each change commits, so a stale
+    // node reference silently drops subsequent fireEvent.change calls.
+    for (let p = 0; p < 10; p++) {
+      const selects = screen.getAllByRole('combobox');
+      fireEvent.change(selects[p + 1], { target: { value: ROLE_FILL[p % 5] } });
+    }
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Save Match' })).not.toBeDisabled()
+    );
+  };
+
+  // Valid 6v6: 6 players/team, 2T/2D/2S (tanks at the cap of 2).
+  const SIX_FILL: Array<string> = ['Reinhardt', 'Winston', 'Genji', 'Tracer', 'Ana', 'Kiriko'];
+  const fillValidSixVSix = async () => {
+    fireEvent.click(screen.getByRole('button', { name: '6v6' }));
+    for (let i = 1; i < 12; i++) fireEvent.click(screen.getByText('+ Add Another Player'));
+    fireEvent.change(screen.getByPlaceholderText('e.g. 3-2'), { target: { value: '2-1' } });
+    const tags = screen.getAllByPlaceholderText('Name#1234');
+    tags.forEach((t, i) => fireEvent.change(t, { target: { value: `P${i}#100${i}` } }));
+    for (let i = 6; i < 12; i++) {
+      const section = tags[i].closest('.lm-player-section') as HTMLElement;
+      fireEvent.click(within(section).getByRole('button', { name: 'Team 2' }));
+    }
+    const selects = screen.getAllByRole('combobox');
+    for (let p = 0; p < 12; p++) {
+      fireEvent.change(selects[p + 1], { target: { value: SIX_FILL[p % 6] } });
+    }
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Save Match' })).not.toBeDisabled()
+    );
+  };
+
+  test('submits the selected team size', async () => {
+    await renderLogMatch();
+    await fillValidSixVSix();
+    fireEvent.click(screen.getByRole('button', { name: 'Save Match' }));
+    await waitFor(() => expect(createMatch).toHaveBeenCalled());
+    expect((createMatch as jest.Mock).mock.calls[0][0].team_size).toBe('6v6');
+  });
+
+  test('switching a valid 5v5 to 6v6 makes it invalid (needs 6 players)', async () => {
+    await renderLogMatch();
+    await fillValidFiveVFive();               // valid under 5v5
+    fireEvent.click(screen.getByRole('button', { name: '6v6' }));
+    // Each 5-player team is now short one player under 6v6.
+    expect(screen.getByText(/Team 1: needs 6 players \(has 5\)/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save Match' })).toBeDisabled();
+  });
+
+  test('6v6 dropdown stops offering Tank once a team has two tanks', async () => {
+    await renderLogMatch();
+    fireEvent.click(screen.getByRole('button', { name: '6v6' }));
+    fireEvent.click(screen.getByText('+ Add Another Player'));   // 2 team1 players
+    fireEvent.click(screen.getByText('+ Add Another Player'));   // 3 team1 players
+    fireEvent.change(screen.getAllByRole('combobox')[1], { target: { value: 'Reinhardt' } });
+    fireEvent.change(screen.getAllByRole('combobox')[2], { target: { value: 'Winston' } });
+    // Third player's primary-hero select should no longer include a Tank option.
+    const thirdSelect = screen.getAllByRole('combobox')[3];
+    expect(within(thirdSelect).queryByRole('option', { name: 'Reinhardt' })).toBeNull();
+    expect(within(thirdSelect).queryByRole('option', { name: 'Genji' })).toBeInTheDocument();
+  });
+
+  test('submits the selected game mode', async () => {
+    await renderLogMatch();
+    await fillValidFiveVFive();
+    fireEvent.click(screen.getByRole('button', { name: 'Unranked' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save Match' }));
+    await waitFor(() => expect(createMatch).toHaveBeenCalled());
+    expect((createMatch as jest.Mock).mock.calls[0][0].game_mode).toBe('unranked');
+  });
+
   test('shows loading initially', async () => {
     render(<LogMatch onSuccess={jest.fn()} onCancel={jest.fn()} />);
     expect(screen.getByText('Loading...')).toBeInTheDocument();

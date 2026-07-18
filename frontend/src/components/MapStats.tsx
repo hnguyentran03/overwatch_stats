@@ -3,12 +3,12 @@ import { getWinPercentageByMap, getWinPercentageByHero } from '../api/client';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import MapDetailModal from './MapDetailModal';
 import HeroDetailModal from './HeroDetailModal';
-import type { HeroStat, MapStat, MapType, Role } from '../types';
+import type { HeroStat, MapStat, MapType, Role, ModeFilter, SizeFilter } from '../types';
 
-interface MapStatsProps { playerId: string; }
+interface MapStatsProps { playerId: string; mode: ModeFilter; size: SizeFilter; }
 interface TooltipProps { active?: boolean; payload?: Array<{ payload: MapStat }>; label?: string; }
 
-const MapStats = ({ playerId }: MapStatsProps) => {
+const MapStats = ({ playerId, mode, size }: MapStatsProps) => {
   const [mapStats, setMapStats] = useState<MapStat[]>([]);
   const [allHeroes, setAllHeroes] = useState<HeroStat[]>([]);
   const [loading, setLoading] = useState(true);
@@ -19,14 +19,14 @@ const MapStats = ({ playerId }: MapStatsProps) => {
   const [selectedHeroMap, setSelectedHeroMap] = useState<{ hero: HeroStat; mapName: string } | null>(null);
 
   useEffect(() => {
-    getWinPercentageByHero(playerId)
+    getWinPercentageByHero(playerId, null, mode, size)
       .then(data => setAllHeroes(data.hero_stats.filter(h => h.total > 0)))
       .catch(err => console.error('Error fetching heroes:', err));
-  }, [playerId]);
+  }, [playerId, mode, size]);
 
   useEffect(() => {
     fetchMapStats();
-  }, [playerId, roleFilter, heroFilter]);
+  }, [playerId, roleFilter, heroFilter, mode, size]);
 
   const fetchMapStats = async () => {
     setLoading(true);
@@ -34,7 +34,9 @@ const MapStats = ({ playerId }: MapStatsProps) => {
       const data = await getWinPercentageByMap(
         playerId,
         roleFilter === 'all' ? null : roleFilter,
-        heroFilter === 'all' ? null : heroFilter
+        heroFilter === 'all' ? null : heroFilter,
+        mode,
+        size
       );
       setMapStats(data.map_stats);
     } catch (err) {
@@ -56,7 +58,7 @@ const MapStats = ({ playerId }: MapStatsProps) => {
   const handleBarClick = async (data: any) => {
     if (heroFilter !== 'all') {
       try {
-        const result = await getWinPercentageByHero(playerId, data.map_id);
+        const result = await getWinPercentageByHero(playerId, data.map_id, mode, size);
         const hero = result.hero_stats.find(h => String(h.hero_id) === String(heroFilter));
         if (hero) {
           setSelectedHeroMap({ hero, mapName: data.map_name });
@@ -106,6 +108,8 @@ const MapStats = ({ playerId }: MapStatsProps) => {
           playerId={playerId}
           onClose={() => setSelectedMap(null)}
           roleFilter={roleFilter}
+          mode={mode}
+          size={size}
         />
       )}
       {selectedHeroMap && (

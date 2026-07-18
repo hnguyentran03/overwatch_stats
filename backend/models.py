@@ -12,6 +12,16 @@ class OutcomeEnum(enum.Enum):
     draw = "draw"
 
 
+class GameModeEnum(enum.Enum):
+    ranked = "ranked"
+    unranked = "unranked"
+
+
+class TeamSizeEnum(enum.Enum):
+    five_v_five = "5v5"
+    six_v_six = "6v6"
+
+
 class RoleEnum(enum.Enum):
     tank = "tank"
     support = "support"
@@ -40,6 +50,8 @@ class Match(Base):
     final_score = Column(String, nullable=False)
     outcome = Column(Enum(OutcomeEnum), nullable=False)
     duration = Column(Float, default=0.0)  # match length in minutes
+    game_mode = Column(Enum(GameModeEnum), nullable=False, default=GameModeEnum.ranked)
+    team_size = Column(Enum(TeamSizeEnum), nullable=False, default=TeamSizeEnum.five_v_five)
 
     map = relationship("Map", back_populates="matches")
     match_players = relationship("MatchPlayer", back_populates="match")

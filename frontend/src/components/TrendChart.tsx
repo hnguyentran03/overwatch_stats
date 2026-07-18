@@ -2,15 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { getMapTrends } from '../api/client';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import MapDetailModal from './MapDetailModal';
-import type { MapStat, MapTrend, Role, TrendPeriod } from '../types';
+import type { MapStat, MapTrend, Role, TrendPeriod, ModeFilter, SizeFilter } from '../types';
 
-interface TrendChartProps { playerId: string; }
+interface TrendChartProps { playerId: string; mode: ModeFilter; size: SizeFilter; }
 interface CumulativePoint { period: string; wins: number; losses: number; win_percentage: string | number; }
 interface TooltipProps { active?: boolean; payload?: Array<{ payload: CumulativePoint }>; label?: string; }
 
 const GAME_MODE_ORDER = ['Control', 'Escort', 'Flashpoint', 'Hybrid', 'Push'];
 
-const TrendChart = ({ playerId }: TrendChartProps) => {
+const TrendChart = ({ playerId, mode, size }: TrendChartProps) => {
   const [trends, setTrends] = useState<MapTrend[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeWindow, setTimeWindow] = useState<'day' | 'week' | 'month'>('week');
@@ -20,12 +20,12 @@ const TrendChart = ({ playerId }: TrendChartProps) => {
 
   useEffect(() => {
     fetchTrends();
-  }, [playerId, timeWindow, roleFilter]);
+  }, [playerId, timeWindow, roleFilter, mode, size]);
 
   const fetchTrends = async () => {
     setLoading(true);
     try {
-      const data = await getMapTrends(playerId, timeWindow, roleFilter === 'all' ? null : roleFilter);
+      const data = await getMapTrends(playerId, timeWindow, roleFilter === 'all' ? null : roleFilter, mode, size);
       setTrends(data.map_trends);
     } catch (err) {
       console.error('Error fetching trends:', err);
@@ -113,6 +113,8 @@ const TrendChart = ({ playerId }: TrendChartProps) => {
           playerId={playerId}
           onClose={() => setSelectedMap(null)}
           roleFilter={roleFilter}
+          mode={mode}
+          size={size}
         />
       )}
       <h2>Performance Trends Over Time</h2>

@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { getWinPercentageByHero } from '../api/client';
 import HeroStatsView from './HeroStatsView';
-import type { HeroStat, MapStat, Role } from '../types';
+import type { HeroStat, MapStat, Role, ModeFilter, SizeFilter } from '../types';
 
 interface MapDetailModalProps {
   map: MapStat;
   playerId: string;
   onClose: () => void;
   roleFilter?: Role | 'all';
+  mode: ModeFilter;
+  size: SizeFilter;
 }
 
-const MapDetailModal = ({ map, playerId, onClose, roleFilter = 'all' }: MapDetailModalProps) => {
+const MapDetailModal = ({ map, playerId, onClose, roleFilter = 'all', mode, size }: MapDetailModalProps) => {
   const [heroStats, setHeroStats] = useState<HeroStat[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,11 +26,11 @@ const MapDetailModal = ({ map, playerId, onClose, roleFilter = 'all' }: MapDetai
   useEffect(() => {
     setLoading(true);
     setError(null);
-    getWinPercentageByHero(playerId, map.map_id)
+    getWinPercentageByHero(playerId, map.map_id, mode, size)
       .then(data => setHeroStats(data.hero_stats))
       .catch(() => setError('Failed to load hero stats for this map.'))
       .finally(() => setLoading(false));
-  }, [playerId, map.map_id]);
+  }, [playerId, map.map_id, mode, size]);
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) onClose();

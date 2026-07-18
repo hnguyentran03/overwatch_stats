@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import Dashboard from './Dashboard';
 import { getPlayerStats, getPlayerMatchOutcomes } from '../api/client';
 
@@ -90,7 +90,71 @@ describe('Dashboard', () => {
     await waitFor(() =>
       expect(screen.getByRole('heading', { name: 'NewPlayer#5678' })).toBeInTheDocument()
     );
-    expect(getPlayerStats).toHaveBeenLastCalledWith('NewPlayer#5678');
+    expect(getPlayerStats).toHaveBeenLastCalledWith('NewPlayer#5678', 'all', 'all');
+  });
+
+  test('shows the loader instead of stale data while a newly searched tag loads', async () => {
+    render(<Dashboard />);
+    await waitFor(() => screen.getByRole('heading', { name: 'PlayerOne#1234' }));
+
+    // Make the next stats fetch hang; outcomes resolve immediately (default mock),
+    // so completion is gated solely on the hanging stats promise.
+    let resolveStats: (v: unknown) => void = () => {};
+    (getPlayerStats as jest.Mock).mockImplementationOnce(
+      () => new Promise((res) => { resolveStats = res; })
+    );
+
+    fireEvent.change(screen.getByPlaceholderText('Name#1234'), { target: { value: 'NewPlayer#5678' } });
+    fireEvent.click(screen.getByText('Search'));
+
+    // The previous player's data must be replaced by the loader — not shown under
+    // the new tag's name — while the new tag is still loading.
+    await waitFor(() =>
+      expect(screen.getByText('Loading player data...')).toBeInTheDocument()
+    );
+
+    resolveStats(statsFixture);
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'NewPlayer#5678' })).toBeInTheDocument()
+    );
+  });
+
+  test('changing the mode filter refetches with that mode', async () => {
+    render(<Dashboard />);
+    await waitFor(() => screen.getByRole('heading', { name: 'PlayerOne#1234' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ranked' }));
+
+    await waitFor(() =>
+      expect(getPlayerStats).toHaveBeenLastCalledWith('PlayerOne#1234', 'ranked', 'all')
+    );
+    expect(getPlayerMatchOutcomes).toHaveBeenLastCalledWith('PlayerOne#1234', 'ranked', 'all');
+  });
+
+  test('changing the size filter refetches with that size', async () => {
+    render(<Dashboard />);
+    await waitFor(() => screen.getByRole('heading', { name: 'PlayerOne#1234' }));
+    fireEvent.click(screen.getByRole('button', { name: '6v6' }));
+    await waitFor(() =>
+      expect(getPlayerStats).toHaveBeenLastCalledWith('PlayerOne#1234', 'all', '6v6')
+    );
+  });
+
+  test('filter buttons expose aria-pressed for the active selection', async () => {
+    render(<Dashboard />);
+    await waitFor(() => screen.getByRole('heading', { name: 'PlayerOne#1234' }));
+
+    const modeGroup = screen.getByRole('group', { name: 'Game mode filter' });
+    // Defaults to 'All' pressed.
+    expect(within(modeGroup).getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(modeGroup).getByRole('button', { name: 'Ranked' })).toHaveAttribute('aria-pressed', 'false');
+
+    fireEvent.click(within(modeGroup).getByRole('button', { name: 'Ranked' }));
+
+    await waitFor(() =>
+      expect(within(modeGroup).getByRole('button', { name: 'Ranked' })).toHaveAttribute('aria-pressed', 'true')
+    );
+    expect(within(modeGroup).getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'false');
   });
 
   test('switching tabs renders the corresponding component', async () => {
