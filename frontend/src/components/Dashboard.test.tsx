@@ -90,7 +90,7 @@ describe('Dashboard', () => {
     await waitFor(() =>
       expect(screen.getByRole('heading', { name: 'NewPlayer#5678' })).toBeInTheDocument()
     );
-    expect(getPlayerStats).toHaveBeenLastCalledWith('NewPlayer#5678', 'all');
+    expect(getPlayerStats).toHaveBeenLastCalledWith('NewPlayer#5678', 'all', 'all');
   });
 
   test('changing the mode filter refetches with that mode', async () => {
@@ -100,9 +100,18 @@ describe('Dashboard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Ranked' }));
 
     await waitFor(() =>
-      expect(getPlayerStats).toHaveBeenLastCalledWith('PlayerOne#1234', 'ranked')
+      expect(getPlayerStats).toHaveBeenLastCalledWith('PlayerOne#1234', 'ranked', 'all')
     );
-    expect(getPlayerMatchOutcomes).toHaveBeenLastCalledWith('PlayerOne#1234', 'ranked');
+    expect(getPlayerMatchOutcomes).toHaveBeenLastCalledWith('PlayerOne#1234', 'ranked', 'all');
+  });
+
+  test('changing the size filter refetches with that size', async () => {
+    render(<Dashboard />);
+    await waitFor(() => screen.getByRole('heading', { name: 'PlayerOne#1234' }));
+    fireEvent.click(screen.getByRole('button', { name: '6v6' }));
+    await waitFor(() =>
+      expect(getPlayerStats).toHaveBeenLastCalledWith('PlayerOne#1234', 'all', '6v6')
+    );
   });
 
   test('switching tabs renders the corresponding component', async () => {

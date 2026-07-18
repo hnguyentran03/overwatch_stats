@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getPlayerStats, getPlayerMatchOutcomes } from '../api/client';
-import type { PlayerStats, MatchOutcome, ModeFilter } from '../types';
+import type { PlayerStats, MatchOutcome, ModeFilter, SizeFilter } from '../types';
 import HeroStats from './HeroStats';
 import MapStats from './MapStats';
 import TrendChart from './TrendChart';
@@ -19,10 +19,11 @@ const Dashboard = () => {
   const [selectedMatchId, setSelectedMatchId] = useState<number | null>(null);
   const [showLogMatch, setShowLogMatch] = useState<boolean>(false);
   const [modeFilter, setModeFilter] = useState<ModeFilter>('all');
+  const [sizeFilter, setSizeFilter] = useState<SizeFilter>('all');
 
   useEffect(() => {
     fetchPlayerData(searchedTag);
-  }, [searchedTag, modeFilter]);
+  }, [searchedTag, modeFilter, sizeFilter]);
 
   const fetchPlayerData = async (tag: string) => {
     setLoading(true);
@@ -30,8 +31,8 @@ const Dashboard = () => {
     setPlayerStats(null);
     try {
       const [stats, outcomes] = await Promise.all([
-        getPlayerStats(tag, modeFilter),
-        getPlayerMatchOutcomes(tag, modeFilter)
+        getPlayerStats(tag, modeFilter, sizeFilter),
+        getPlayerMatchOutcomes(tag, modeFilter, sizeFilter)
       ]);
       setPlayerStats(stats);
       setMatchOutcomes(outcomes.matches);
@@ -147,13 +148,13 @@ const Dashboard = () => {
             <MatchHistory matches={matchOutcomes} onMatchClick={setSelectedMatchId} />
           )}
           {activeTab === 'heroes' && (
-            <HeroStats playerId={searchedTag} mode={modeFilter} />
+            <HeroStats playerId={searchedTag} mode={modeFilter} size={sizeFilter} />
           )}
           {activeTab === 'maps' && (
-            <MapStats playerId={searchedTag} mode={modeFilter} />
+            <MapStats playerId={searchedTag} mode={modeFilter} size={sizeFilter} />
           )}
           {activeTab === 'trends' && (
-            <TrendChart playerId={searchedTag} mode={modeFilter} />
+            <TrendChart playerId={searchedTag} mode={modeFilter} size={sizeFilter} />
           )}
         </div>
       </>
@@ -208,6 +209,17 @@ const Dashboard = () => {
               key={value}
               className={modeFilter === value ? 'active' : ''}
               onClick={() => setModeFilter(value)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="size-filter" role="group" aria-label="Team size filter">
+          {([['all', 'All'], ['5v5', '5v5'], ['6v6', '6v6']] as const).map(([value, label]) => (
+            <button
+              key={value}
+              className={sizeFilter === value ? 'active' : ''}
+              onClick={() => setSizeFilter(value)}
             >
               {label}
             </button>
