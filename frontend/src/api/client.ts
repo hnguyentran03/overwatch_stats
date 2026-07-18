@@ -17,6 +17,7 @@ import type {
   ScoreboardPlayer,
   Role,
   ModeFilter,
+  SizeFilter,
 } from '../types';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
@@ -35,6 +36,10 @@ const appendMode = (params: Record<string, string | number>, mode: ModeFilter) =
   if (mode !== 'all') params.mode = mode;
 };
 
+const appendSize = (params: Record<string, string | number>, size: SizeFilter) => {
+  if (size !== 'all') params.size = size;
+};
+
 export const getMatches = async (
   startDate?: string,
   endDate?: string
@@ -48,20 +53,24 @@ export const getMatches = async (
 
 export const getPlayerStats = async (
   battleTag: string,
-  mode: ModeFilter = 'all'
+  mode: ModeFilter = 'all',
+  size: SizeFilter = 'all'
 ): Promise<PlayerStats> => {
   const params: Record<string, string | number> = {};
   appendMode(params, mode);
+  appendSize(params, size);
   const response = await apiClient.get(`/players/${encodeTag(battleTag)}/stats`, { params });
   return response.data;
 };
 
 export const getPlayerMatchOutcomes = async (
   battleTag: string,
-  mode: ModeFilter = 'all'
+  mode: ModeFilter = 'all',
+  size: SizeFilter = 'all'
 ): Promise<MatchOutcomesResponse> => {
   const params: Record<string, string | number> = {};
   appendMode(params, mode);
+  appendSize(params, size);
   const response = await apiClient.get(`/players/${encodeTag(battleTag)}/match_outcomes`, {
     params,
   });
@@ -71,11 +80,13 @@ export const getPlayerMatchOutcomes = async (
 export const getWinPercentageByHero = async (
   battleTag: string,
   mapId: number | null = null,
-  mode: ModeFilter = 'all'
+  mode: ModeFilter = 'all',
+  size: SizeFilter = 'all'
 ): Promise<HeroStatsResponse> => {
   const params: Record<string, string | number> = {};
   if (mapId) params.map_id = mapId;
   appendMode(params, mode);
+  appendSize(params, size);
   const response = await apiClient.get(
     `/players/${encodeTag(battleTag)}/win_percentage/hero`,
     { params }
@@ -87,12 +98,14 @@ export const getWinPercentageByMap = async (
   battleTag: string,
   role: Role | null = null,
   heroId: number | string | null = null,
-  mode: ModeFilter = 'all'
+  mode: ModeFilter = 'all',
+  size: SizeFilter = 'all'
 ): Promise<MapStatsResponse> => {
   const params: Record<string, string | number> = {};
   if (role) params.role = role;
   if (heroId) params.hero_id = heroId;
   appendMode(params, mode);
+  appendSize(params, size);
   const response = await apiClient.get(
     `/players/${encodeTag(battleTag)}/win_percentage/map`,
     { params }
@@ -103,10 +116,12 @@ export const getWinPercentageByMap = async (
 export const getMapStats = async (
   battleTag: string,
   mapId: number,
-  mode: ModeFilter = 'all'
+  mode: ModeFilter = 'all',
+  size: SizeFilter = 'all'
 ): Promise<MapDetail> => {
   const params: Record<string, string | number> = {};
   appendMode(params, mode);
+  appendSize(params, size);
   const response = await apiClient.get(`/players/${encodeTag(battleTag)}/map_stats/${mapId}`, {
     params,
   });
@@ -117,11 +132,13 @@ export const getMapTrends = async (
   battleTag: string,
   timeWindow: 'day' | 'week' | 'month' = 'week',
   role: Role | null = null,
-  mode: ModeFilter = 'all'
+  mode: ModeFilter = 'all',
+  size: SizeFilter = 'all'
 ): Promise<MapTrendsResponse> => {
   const params: Record<string, string | number> = { time_window: timeWindow };
   if (role) params.role = role;
   appendMode(params, mode);
+  appendSize(params, size);
   const response = await apiClient.get(
     `/players/${encodeTag(battleTag)}/map_trends`,
     { params }
@@ -132,10 +149,12 @@ export const getMapTrends = async (
 export const getPreferredHeroes = async (
   battleTag: string,
   mapId: number,
-  mode: ModeFilter = 'all'
+  mode: ModeFilter = 'all',
+  size: SizeFilter = 'all'
 ): Promise<PreferredHeroesResponse> => {
   const params: Record<string, string | number> = {};
   appendMode(params, mode);
+  appendSize(params, size);
   const response = await apiClient.get(
     `/players/${encodeTag(battleTag)}/preferred_heroes/${mapId}`,
     { params }

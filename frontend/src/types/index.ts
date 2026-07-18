@@ -6,6 +6,8 @@ export type Outcome = 'win' | 'loss' | 'draw';
 export type Team = 'team1' | 'team2';
 export type GameMode = 'ranked' | 'unranked';
 export type ModeFilter = 'all' | GameMode;
+export type TeamSize = '5v5' | '6v6';
+export type SizeFilter = 'all' | TeamSize;
 export type MapType = 'Hybrid' | 'Control' | 'Escort' | 'Flashpoint' | 'Push';
 
 // ── Reference entities ──
@@ -92,6 +94,7 @@ export interface MatchListItem {
   final_score: string;
   outcome: Outcome;
   game_mode: GameMode;
+  team_size: TeamSize;
 }
 export interface MatchesResponse {
   matches: MatchListItem[];
@@ -122,6 +125,7 @@ export interface MatchOutcome {
   healing_done: number;
   damage_mitigated: number;
   game_mode: GameMode;
+  team_size: TeamSize;
 }
 export interface MatchOutcomesResponse {
   battle_tag: string;
@@ -245,6 +249,7 @@ export interface MatchDetails {
   players: MatchDetailPlayer[];
   bans: { team1: BanInfo[]; team2: BanInfo[] };
   game_mode: GameMode;
+  team_size: TeamSize;
 }
 
 // ── /matches/<id>/banned_heroes ──
