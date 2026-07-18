@@ -93,6 +93,32 @@ describe('Dashboard', () => {
     expect(getPlayerStats).toHaveBeenLastCalledWith('NewPlayer#5678', 'all', 'all');
   });
 
+  test('shows the loader instead of stale data while a newly searched tag loads', async () => {
+    render(<Dashboard />);
+    await waitFor(() => screen.getByRole('heading', { name: 'PlayerOne#1234' }));
+
+    // Make the next stats fetch hang; outcomes resolve immediately (default mock),
+    // so completion is gated solely on the hanging stats promise.
+    let resolveStats: (v: unknown) => void = () => {};
+    (getPlayerStats as jest.Mock).mockImplementationOnce(
+      () => new Promise((res) => { resolveStats = res; })
+    );
+
+    fireEvent.change(screen.getByPlaceholderText('Name#1234'), { target: { value: 'NewPlayer#5678' } });
+    fireEvent.click(screen.getByText('Search'));
+
+    // The previous player's data must be replaced by the loader — not shown under
+    // the new tag's name — while the new tag is still loading.
+    await waitFor(() =>
+      expect(screen.getByText('Loading player data...')).toBeInTheDocument()
+    );
+
+    resolveStats(statsFixture);
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'NewPlayer#5678' })).toBeInTheDocument()
+    );
+  });
+
   test('changing the mode filter refetches with that mode', async () => {
     render(<Dashboard />);
     await waitFor(() => screen.getByRole('heading', { name: 'PlayerOne#1234' }));

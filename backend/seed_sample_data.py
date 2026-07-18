@@ -58,6 +58,19 @@ def make_stats(role, outcome):
     return elims, final_blows, assists, deaths, damage, healing, mitigation
 
 
+def make_team_comp(total):
+    """A role list of length `total` for one team, tanks capped at 2 in 6v6."""
+    if total == 5:
+        roles = ['tank', 'dps', 'dps', 'support', 'support']
+    else:  # 6v6, tanks capped at 2; at least one of each role
+        tanks = random.choice([1, 2, 2])
+        remaining = total - tanks
+        dps = random.randint(1, remaining - 1)
+        roles = ['tank'] * tanks + ['dps'] * dps + ['support'] * (remaining - dps)
+    random.shuffle(roles)
+    return roles
+
+
 def add_match(session, player, hero_pool, maps, start_date, day_range, filler_players, heroes_by_role):
     days_offset = random.randint(0, day_range)
     hours_offset = random.randint(0, 23)
@@ -136,17 +149,6 @@ def add_match(session, player, hero_pool, maps, start_date, day_range, filler_pl
     # per team with at most 2 tanks (DPS/Support unrestricted), matching the
     # composition rules enforced in the match-logging form.
     team_total = 5 if match.team_size == TeamSizeEnum.five_v_five else 6
-
-    def make_team_comp(total):
-        if total == 5:
-            roles = ['tank', 'dps', 'dps', 'support', 'support']
-        else:  # 6v6, tanks capped at 2; at least one of each role
-            tanks = random.choice([1, 2, 2])
-            remaining = total - tanks
-            dps = random.randint(1, remaining - 1)
-            roles = ['tank'] * tanks + ['dps'] * dps + ['support'] * (remaining - dps)
-        random.shuffle(roles)
-        return roles
 
     # Team 1 includes the tracked player (already placed above as tracked_role);
     # drop one slot of that role from team 1's remaining filler needs.

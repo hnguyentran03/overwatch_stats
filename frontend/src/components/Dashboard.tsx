@@ -8,10 +8,36 @@ import MatchHistory from './MatchHistory';
 import MatchDetailModal from './MatchDetailModal';
 import LogMatch from './LogMatch';
 
+interface FilterGroupProps<T extends string> {
+  className: string;
+  ariaLabel: string;
+  options: ReadonlyArray<readonly [T, string]>;
+  value: T;
+  onChange: (value: T) => void;
+}
+
+function FilterGroup<T extends string>({ className, ariaLabel, options, value, onChange }: FilterGroupProps<T>) {
+  return (
+    <div className={className} role="group" aria-label={ariaLabel}>
+      {options.map(([optValue, label]) => (
+        <button
+          key={optValue}
+          className={value === optValue ? 'active' : ''}
+          aria-pressed={value === optValue}
+          onClick={() => onChange(optValue)}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 const Dashboard = () => {
   const [inputValue, setInputValue] = useState<string>('PlayerOne#1234');
   const [searchedTag, setSearchedTag] = useState<string>('PlayerOne#1234');
   const [playerStats, setPlayerStats] = useState<PlayerStats | null>(null);
+  const [loadedTag, setLoadedTag] = useState<string | null>(null);
   const [matchOutcomes, setMatchOutcomes] = useState<MatchOutcome[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [notFound, setNotFound] = useState<boolean>(false);
@@ -34,6 +60,7 @@ const Dashboard = () => {
         getPlayerMatchOutcomes(tag, modeFilter, sizeFilter)
       ]);
       setPlayerStats(stats);
+      setLoadedTag(tag);
       setMatchOutcomes(outcomes.matches);
     } catch (err: any) {
       if (err.response?.status === 404) {
@@ -59,7 +86,12 @@ const Dashboard = () => {
   };
 
   const renderBody = () => {
-    if (loading && !playerStats) {
+    // Data on hand is only valid for the tag it was loaded for. On a tag change
+    // it's stale (belongs to another player), so show the loader; on a same-tag
+    // filter refetch we keep it visible and let it update in place (no flash).
+    const hasCurrentPlayer = playerStats !== null && loadedTag === searchedTag;
+
+    if (loading && !hasCurrentPlayer) {
       return <div className="loading">Loading player data...</div>;
     }
 
@@ -71,36 +103,26 @@ const Dashboard = () => {
       );
     }
 
-    if (!playerStats) return null;
+    if (!hasCurrentPlayer) return null;
 
     return (
       <>
         <h2 className="player-heading">{searchedTag}</h2>
         <div className="filter-bar">
-          <div className="mode-filter" role="group" aria-label="Game mode filter">
-            {([['all', 'All'], ['ranked', 'Ranked'], ['unranked', 'Unranked']] as const).map(([value, label]) => (
-              <button
-                key={value}
-                className={modeFilter === value ? 'active' : ''}
-                aria-pressed={modeFilter === value}
-                onClick={() => setModeFilter(value)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <div className="size-filter" role="group" aria-label="Team size filter">
-            {([['all', 'All'], ['5v5', '5v5'], ['6v6', '6v6']] as const).map(([value, label]) => (
-              <button
-                key={value}
-                className={sizeFilter === value ? 'active' : ''}
-                aria-pressed={sizeFilter === value}
-                onClick={() => setSizeFilter(value)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <FilterGroup
+            className="mode-filter"
+            ariaLabel="Game mode filter"
+            options={[['all', 'All'], ['ranked', 'Ranked'], ['unranked', 'Unranked']] as const}
+            value={modeFilter}
+            onChange={setModeFilter}
+          />
+          <FilterGroup
+            className="size-filter"
+            ariaLabel="Team size filter"
+            options={[['all', 'All'], ['5v5', '5v5'], ['6v6', '6v6']] as const}
+            value={sizeFilter}
+            onChange={setSizeFilter}
+          />
         </div>
         <div className="stats-overview">
           <div className="stat-card">
