@@ -264,6 +264,7 @@ export interface CreateMatchPayload {
   date_time: string;
   map_id: number;
   outcome: Outcome;
+  game_mode: GameMode;
   final_score: string;
   duration: number;
   players: {

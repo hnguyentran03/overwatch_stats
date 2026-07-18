@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { getHeroes, getMaps, createMatch, parseScoreboard } from '../api/client';
-import type { Hero, GameMap, Role, Team, CreateMatchPayload } from '../types';
+import type { Hero, GameMap, Role, Team, CreateMatchPayload, GameMode } from '../types';
 
 interface HeroSlotForm {
   hero_name: string;
@@ -23,6 +23,7 @@ interface MatchForm {
   date_time: string;
   map_id: number | string;
   outcome: 'win' | 'loss' | 'draw';
+  game_mode: GameMode;
   final_score: string;
   duration: string;
   players: PlayerForm[];
@@ -84,6 +85,7 @@ const LogMatch = ({ onSuccess, onCancel }: LogMatchProps) => {
     date_time: now(),
     map_id: '',
     outcome: 'win',
+    game_mode: 'ranked',
     final_score: '',
     duration: '',
     players: [{ ...EMPTY_PLAYER }],
@@ -329,6 +331,7 @@ const LogMatch = ({ onSuccess, onCancel }: LogMatchProps) => {
       date_time: form.date_time,
       map_id: parseInt(String(form.map_id)),
       outcome: form.outcome,
+      game_mode: form.game_mode,
       final_score: form.final_score.trim(),
       duration: form.duration !== '' ? parseFloat(form.duration) : 0,
       players: form.players
@@ -532,6 +535,22 @@ const LogMatch = ({ onSuccess, onCancel }: LogMatchProps) => {
                     onClick={() => setMatchField('outcome', o)}
                   >
                     {o.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="lm-field">
+              <label>Game Mode</label>
+              <div className="lm-mode-btns">
+                {(['ranked', 'unranked'] as const).map(mode => (
+                  <button
+                    key={mode}
+                    type="button"
+                    className={`lm-mode-btn${form.game_mode === mode ? ' active' : ''}`}
+                    onClick={() => setMatchField('game_mode', mode)}
+                  >
+                    {mode === 'ranked' ? 'Ranked' : 'Unranked'}
                   </button>
                 ))}
               </div>

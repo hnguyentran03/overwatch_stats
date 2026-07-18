@@ -91,6 +91,11 @@ describe('MatchHistory', () => {
     expect(onMatchClick).toHaveBeenCalledWith(99);
   });
 
+  test('renders the game mode badge', () => {
+    render(<MatchHistory matches={[makeMatch({ game_mode: 'unranked' })]} />);
+    expect(screen.getByText('Unranked')).toBeInTheDocument();
+  });
+
   test('paginates with See More button', () => {
     const matches = Array.from({ length: 25 }, (_, i) =>
       makeMatch({ match_id: i + 1, map_name: `Map ${i + 1}` })

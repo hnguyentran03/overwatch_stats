@@ -100,6 +100,7 @@ describe('return values', () => {
       date_time: '2026-01-01T00:00:00',
       map_id: 1,
       outcome: 'win',
+      game_mode: 'ranked',
       final_score: '2-1',
       duration: 15,
       players: [],
