@@ -53,6 +53,7 @@ class TestCreateMatch:
             "final_score": "2-1",
             "outcome": "win",
             "game_mode": "ranked",
+            "team_size": "5v5",
             "duration": 15.0,
             "players": [
                 {
@@ -142,6 +143,31 @@ class TestCreateMatch:
         from models import GameModeEnum
         stored = session.query(Match).filter_by(match_id=mid).first()
         assert stored.game_mode == GameModeEnum.unranked
+
+    def test_missing_team_size_returns_400(self, client, map_by_name):
+        map_obj = map_by_name("King's Row")
+        payload = self._payload(map_obj.map_id)
+        del payload["team_size"]
+        resp = client.post("/api/matches", json=payload)
+        assert resp.status_code == 400
+        assert "team_size" in resp.get_json()["error"]
+
+    def test_invalid_team_size_returns_400(self, client, map_by_name):
+        map_obj = map_by_name("King's Row")
+        payload = self._payload(map_obj.map_id)
+        payload["team_size"] = "7v7"
+        resp = client.post("/api/matches", json=payload)
+        assert resp.status_code == 400
+
+    def test_creates_with_team_size(self, client, map_by_name, session):
+        from models import Match, TeamSizeEnum
+        map_obj = map_by_name("King's Row")
+        payload = self._payload(map_obj.map_id)
+        payload["team_size"] = "6v6"
+        resp = client.post("/api/matches", json=payload)
+        assert resp.status_code == 201
+        stored = session.query(Match).filter_by(match_id=resp.get_json()["match_id"]).first()
+        assert stored.team_size == TeamSizeEnum.six_v_six
 
     def test_unknown_map_returns_404(self, client):
         resp = client.post("/api/matches", json=self._payload(999999))
