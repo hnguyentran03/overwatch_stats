@@ -379,3 +379,20 @@ class TestGameModeColumn:
         match = add_match(player, game_mode=GameModeEnum.unranked)
         stored = session.query(Match).filter_by(match_id=match.match_id).first()
         assert stored.game_mode == GameModeEnum.unranked
+
+
+class TestTeamSizeColumn:
+    def test_add_match_defaults_to_5v5(self, add_match, make_player, session):
+        from models import Match, TeamSizeEnum
+        player = make_player()
+        match = add_match(player)
+        stored = session.query(Match).filter_by(match_id=match.match_id).first()
+        assert stored.team_size == TeamSizeEnum.five_v_five
+        assert stored.team_size.value == "5v5"
+
+    def test_add_match_accepts_6v6(self, add_match, make_player, session):
+        from models import Match, TeamSizeEnum
+        player = make_player()
+        match = add_match(player, team_size=TeamSizeEnum.six_v_six)
+        stored = session.query(Match).filter_by(match_id=match.match_id).first()
+        assert stored.team_size.value == "6v6"

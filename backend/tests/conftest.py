@@ -32,6 +32,7 @@ from models import (  # noqa: E402
     OutcomeEnum,
     TeamEnum,
     GameModeEnum,
+    TeamSizeEnum,
 )
 
 
@@ -118,6 +119,7 @@ def add_match(session, hero_by_name, map_by_name):
         final_score="2-1",
         duration=15.0,
         game_mode=GameModeEnum.ranked,
+        team_size=TeamSizeEnum.five_v_five,
         eliminations=10,
         final_blows=5,
         assists=8,
@@ -138,6 +140,7 @@ def add_match(session, hero_by_name, map_by_name):
             outcome=outcome,
             duration=duration,
             game_mode=game_mode,
+            team_size=team_size,
         )
         session.add(match)
         session.flush()
