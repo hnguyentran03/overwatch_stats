@@ -3,11 +3,11 @@
 Each read endpoint calls parse_match_filters(request.args) and, if there is no
 error, applies the returned clauses to any query joined on Match.
 """
-from models import Match, GameModeEnum
+from models import Match, GameModeEnum, TeamSizeEnum
 
-# Extended in Phase 2 with ("size", "team_size", TeamSizeEnum).
 _FILTER_SPECS = [
     ("mode", "game_mode", GameModeEnum),
+    ("size", "team_size", TeamSizeEnum),
 ]
 
 

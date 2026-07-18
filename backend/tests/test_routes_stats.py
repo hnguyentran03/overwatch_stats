@@ -204,3 +204,12 @@ class TestStatsModeFilter:
         add_match(player, map_name="King's Row", game_mode=GameModeEnum.unranked)
         data = client.get("/api/players/SFilter%235/map_trends?mode=ranked").get_json()
         assert data["map_trends"] == []
+
+    def test_hero_win_pct_combined_mode_and_size(self, client, make_player, add_match):
+        from models import GameModeEnum, TeamSizeEnum, OutcomeEnum
+        player = make_player("Combo#1")
+        add_match(player, hero_name="Ana", game_mode=GameModeEnum.ranked, team_size=TeamSizeEnum.six_v_six, outcome=OutcomeEnum.win)
+        add_match(player, hero_name="Ana", game_mode=GameModeEnum.ranked, team_size=TeamSizeEnum.five_v_five, outcome=OutcomeEnum.loss)
+        data = client.get("/api/players/Combo%231/win_percentage/hero?mode=ranked&size=6v6").get_json()
+        ana = next(h for h in data["hero_stats"] if h["hero_name"] == "Ana")
+        assert ana["total"] == 1 and ana["wins"] == 1

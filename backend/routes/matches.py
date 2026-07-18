@@ -262,7 +262,8 @@ def get_matches():
                 'map_type': match.map.map_type.value,
                 'final_score': match.final_score,
                 'outcome': match.outcome.value,
-                'game_mode': match.game_mode.value
+                'game_mode': match.game_mode.value,
+                'team_size': match.team_size.value
             })
 
         return jsonify({
@@ -367,6 +368,7 @@ def get_match_details(match_id):
             'final_score': match.final_score,
             'outcome': match.outcome.value,
             'game_mode': match.game_mode.value,
+            'team_size': match.team_size.value,
             'duration': match.duration,
             'players': players_result,
             'bans': bans,

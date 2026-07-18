@@ -422,3 +422,24 @@ class TestTeamSizeColumn:
         match = add_match(player, team_size=TeamSizeEnum.six_v_six)
         stored = session.query(Match).filter_by(match_id=match.match_id).first()
         assert stored.team_size.value == "6v6"
+
+
+class TestMatchesSizeFilter:
+    def test_filters_by_size_and_combines_with_mode(self, client, make_player, add_match):
+        from models import GameModeEnum, TeamSizeEnum
+        player = make_player()
+        add_match(player, game_mode=GameModeEnum.ranked, team_size=TeamSizeEnum.five_v_five)
+        add_match(player, game_mode=GameModeEnum.ranked, team_size=TeamSizeEnum.six_v_six)
+        add_match(player, game_mode=GameModeEnum.unranked, team_size=TeamSizeEnum.six_v_six)
+
+        assert client.get("/api/matches?size=6v6").get_json()["count"] == 2
+        assert client.get("/api/matches?size=5v5").get_json()["count"] == 1
+        assert client.get("/api/matches?mode=ranked&size=6v6").get_json()["count"] == 1
+
+    def test_invalid_size_returns_400(self, client):
+        assert client.get("/api/matches?size=7v7").status_code == 400
+
+    def test_response_includes_team_size(self, client, make_player, add_match):
+        player = make_player()
+        add_match(player)
+        assert client.get("/api/matches").get_json()["matches"][0]["team_size"] == "5v5"

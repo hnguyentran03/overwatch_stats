@@ -155,6 +155,7 @@ def get_match_outcomes(battle_tag):
                 'match_id': mid,
                 'date_time': match.date_time.isoformat(),
                 'game_mode': match.game_mode.value,
+                'team_size': match.team_size.value,
                 'map_name': map_obj.map_name,
                 'map_type': map_obj.map_type.value,
                 'outcome': match.outcome.value,
