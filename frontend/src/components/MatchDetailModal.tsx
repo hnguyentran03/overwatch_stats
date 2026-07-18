@@ -73,6 +73,7 @@ const MatchDetailModal = ({ matchId, battleTag, onClose }: { matchId: number; ba
                 <span className={`mode-badge mode-${details.game_mode}`}>
                   {details.game_mode === 'ranked' ? 'Ranked' : 'Unranked'}
                 </span>
+                <span className={`size-badge size-${details.team_size}`}>{details.team_size}</span>
               </div>
             </div>
 

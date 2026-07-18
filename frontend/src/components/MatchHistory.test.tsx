@@ -97,6 +97,11 @@ describe('MatchHistory', () => {
     expect(screen.getByText('Unranked')).toBeInTheDocument();
   });
 
+  test('renders the team size badge', () => {
+    render(<MatchHistory matches={[makeMatch({ team_size: '6v6' })]} />);
+    expect(screen.getByText('6v6')).toBeInTheDocument();
+  });
+
   test('paginates with See More button', () => {
     const matches = Array.from({ length: 25 }, (_, i) =>
       makeMatch({ match_id: i + 1, map_name: `Map ${i + 1}` })

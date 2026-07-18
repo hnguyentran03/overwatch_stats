@@ -409,6 +409,25 @@ body {
   color: var(--text-muted);
 }
 
+.size-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: bold;
+  margin-left: 5px;
+}
+
+.size-badge.size-5v5 {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+}
+
+.size-badge.size-6v6 {
+  background: rgba(var(--accent-rgb), 0.2);
+  color: var(--accent);
+}
+
 .weakest-maps-alert {
   background: rgba(var(--color-loss-rgb), 0.2);
   border: 2px solid var(--color-loss);
