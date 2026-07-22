@@ -12,6 +12,27 @@ A web application for logging Overwatch competitive matches and analyzing perfor
 - **Trend Analysis** — Win rate and volume over time, grouped by day, week, or month.
 - **Match History** — A match-by-match list with drill-down popups showing the full scoreboard and each match's hero bans.
 
+## Tech Stack
+
+**Backend**
+- **Flask** — the REST API framework, with **Flask-CORS** handling cross-origin requests from the frontend.
+- **SQLAlchemy** — ORM for the data model and queries; **psycopg2** is the PostgreSQL driver.
+- **SQLite / PostgreSQL** — the data store (SQLite for local development, PostgreSQL in production, selected via `DATABASE_URL`).
+- **gunicorn** — the production WSGI server that runs the Flask app.
+- **anthropic** — the Claude SDK used for AI scoreboard parsing.
+- **Pillow** — image processing, used to build the labeled hero-portrait reference grid.
+- **python-dateutil** — flexible date parsing behind the trend queries.
+
+**Frontend**
+- **React 18** with **TypeScript** — the single-page app, bootstrapped with Create React App (**react-scripts**).
+- **Recharts** — the charting library for trend and stat visualizations.
+- **Axios** — the HTTP client for all API calls.
+- **Jest** + **React Testing Library** — the component and client test suite.
+
+**Infrastructure**
+- **Caddy** — reverse proxy with automatic HTTPS.
+- **AWS Lightsail** — the single-instance host.
+
 ## Architecture
 
 Two processes run side by side: a Flask REST API and a React single-page app. In development both run locally; in production they sit behind a single reverse proxy (see [Deployment](#deployment)).
@@ -42,4 +63,4 @@ The scoreboard endpoint sends the uploaded screenshot to a Claude vision model t
 
 ### Deployment
 
-The whole app runs on a single AWS Lightsail instance: Caddy terminates HTTPS and reverse-proxies `/api/*` to gunicorn (Flask), and serves the static React build for everything else with an SPA fallback. The full runbook is in [DEPLOY.md](DEPLOY.md).
+The whole app runs on a single AWS Lightsail instance: Caddy terminates HTTPS and reverse-proxies `/api/*` to gunicorn (Flask), and serves the static React build for everything else with an SPA fallback.
