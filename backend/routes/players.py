@@ -3,10 +3,33 @@ from models import Player, MatchPlayer, Match, Hero, Map, RoleEnum
 from utils.db import get_db
 from utils.calculations import aggregate_hero_stats
 from utils.filters import parse_match_filters
+from utils.streamer_names import STREAMER_NAMES
 from sqlalchemy import func
 from collections import defaultdict
 
 players_bp = Blueprint('players', __name__)
+
+
+@players_bp.route('/players/sample', methods=['GET'])
+def get_sample_player():
+    """
+    Return a single random existing battle tag, used as an example in the
+    dashboard's empty search prompt. Only the baked-in Overwatch streamer names
+    are eligible, so a real player's logged battle tag is never surfaced here.
+    Returns null when no such player exists.
+    """
+    db = get_db()
+    session = db.get_session()
+
+    try:
+        player = session.query(Player).filter(
+            Player.user_id.in_(STREAMER_NAMES)
+        ).order_by(func.random()).first()
+        return jsonify({'battle_tag': player.user_id if player else None}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        session.close()
 
 
 @players_bp.route('/players/<string:battle_tag>/stats', methods=['GET'])

@@ -55,6 +55,11 @@ export const getMatches = async (
   return response.data;
 };
 
+export const getSamplePlayer = async (): Promise<{ battle_tag: string | null }> => {
+  const response = await apiClient.get('/players/sample');
+  return response.data;
+};
+
 export const getPlayerStats = async (
   battleTag: string,
   mode: ModeFilter = 'all',

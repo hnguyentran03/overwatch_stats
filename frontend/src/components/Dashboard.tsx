@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getPlayerStats, getPlayerMatchOutcomes } from '../api/client';
+import { getPlayerStats, getPlayerMatchOutcomes, getSamplePlayer } from '../api/client';
 import type { PlayerStats, MatchOutcome, ModeFilter, SizeFilter } from '../types';
 import HeroStats from './HeroStats';
 import MapStats from './MapStats';
@@ -33,19 +33,57 @@ function FilterGroup<T extends string>({ className, ariaLabel, options, value, o
   );
 }
 
+type TabKey = 'overview' | 'heroes' | 'maps' | 'trends';
+
+// Persist the "which page am I on" bits so a browser refresh lands you back where
+// you were, rather than resetting to the empty search prompt.
+const STORAGE_KEY = 'ow.dashboard';
+
+interface PersistedState {
+  searchedTag?: string;
+  activeTab?: TabKey;
+  modeFilter?: ModeFilter;
+  sizeFilter?: SizeFilter;
+}
+
+const loadPersisted = (): PersistedState => {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+  } catch {
+    return {};
+  }
+};
+
 const Dashboard = () => {
-  const [inputValue, setInputValue] = useState<string>('');
-  const [searchedTag, setSearchedTag] = useState<string>('');
+  const [persisted] = useState<PersistedState>(loadPersisted);
+  const [inputValue, setInputValue] = useState<string>(persisted.searchedTag || '');
+  const [searchedTag, setSearchedTag] = useState<string>(persisted.searchedTag || '');
   const [playerStats, setPlayerStats] = useState<PlayerStats | null>(null);
   const [loadedTag, setLoadedTag] = useState<string | null>(null);
   const [matchOutcomes, setMatchOutcomes] = useState<MatchOutcome[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [notFound, setNotFound] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'heroes' | 'maps' | 'trends'>('overview');
+  const [exampleTag, setExampleTag] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabKey>(persisted.activeTab || 'overview');
   const [selectedMatchId, setSelectedMatchId] = useState<number | null>(null);
   const [showLogMatch, setShowLogMatch] = useState<boolean>(false);
-  const [modeFilter, setModeFilter] = useState<ModeFilter>('all');
-  const [sizeFilter, setSizeFilter] = useState<SizeFilter>('all');
+  const [modeFilter, setModeFilter] = useState<ModeFilter>(persisted.modeFilter || 'all');
+  const [sizeFilter, setSizeFilter] = useState<SizeFilter>(persisted.sizeFilter || 'all');
+
+  // Save the current view whenever any of the persisted bits change.
+  useEffect(() => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ searchedTag, activeTab, modeFilter, sizeFilter })
+    );
+  }, [searchedTag, activeTab, modeFilter, sizeFilter]);
+
+  // Fetch one real battle tag to show as an example in the empty prompt.
+  useEffect(() => {
+    getSamplePlayer()
+      .then((res) => setExampleTag(res.battle_tag))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (searchedTag) {
@@ -100,7 +138,22 @@ const Dashboard = () => {
     if (!searchedTag) {
       return (
         <div className="player-prompt">
-          <p>Search for a battle tag to view player stats.</p>
+          <p>
+            Search for a battle tag to view player stats.
+            {exampleTag && (
+              <>
+                {' '}(e.g.{' '}
+                <button
+                  type="button"
+                  className="example-tag"
+                  onClick={() => { setInputValue(exampleTag); setSearchedTag(exampleTag); }}
+                >
+                  {exampleTag}
+                </button>
+                )
+              </>
+            )}
+          </p>
         </div>
       );
     }

@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import Dashboard from './Dashboard';
-import { getPlayerStats, getPlayerMatchOutcomes } from '../api/client';
+import { getPlayerStats, getPlayerMatchOutcomes, getSamplePlayer } from '../api/client';
 
 // Mock the API client used by Dashboard.
 jest.mock('../api/client');
@@ -41,10 +41,13 @@ const statsFixture = {
 const outcomesFixture = { matches: [] };
 
 beforeEach(() => {
+  localStorage.clear();
   (getPlayerStats as jest.Mock).mockReset();
   (getPlayerMatchOutcomes as jest.Mock).mockReset();
+  (getSamplePlayer as jest.Mock).mockReset();
   (getPlayerStats as jest.Mock).mockResolvedValue(statsFixture);
   (getPlayerMatchOutcomes as jest.Mock).mockResolvedValue(outcomesFixture);
+  (getSamplePlayer as jest.Mock).mockResolvedValue({ battle_tag: 'Krusher99' });
 });
 
 // Types a battle tag into the search box, submits it, and waits for the player
@@ -56,10 +59,32 @@ const searchTag = async (tag = 'PlayerOne#1234') => {
 };
 
 describe('Dashboard', () => {
-  test('shows a search prompt before any tag is searched', () => {
+  test('shows a search prompt with an example tag before any tag is searched', async () => {
     render(<Dashboard />);
     expect(screen.getByText(/Search for a battle tag/)).toBeInTheDocument();
     expect(screen.queryByText('Loading player data...')).not.toBeInTheDocument();
+    // The example is a real battle tag fetched from the API.
+    expect(await screen.findByRole('button', { name: 'Krusher99' })).toBeInTheDocument();
+  });
+
+  test('clicking the example tag searches for that player', async () => {
+    render(<Dashboard />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Krusher99' }));
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'Krusher99' })).toBeInTheDocument()
+    );
+    expect(getPlayerStats).toHaveBeenCalledWith('Krusher99', 'all', 'all');
+  });
+
+  test('restores the searched player and tab after a refresh', async () => {
+    localStorage.setItem(
+      'ow.dashboard',
+      JSON.stringify({ searchedTag: 'PlayerOne#1234', activeTab: 'heroes', modeFilter: 'all', sizeFilter: 'all' })
+    );
+    render(<Dashboard />);
+    // No search needed — the prior view is restored from storage.
+    await waitFor(() => screen.getByRole('heading', { name: 'PlayerOne#1234' }));
+    expect(screen.getByText('HeroStats Component')).toBeInTheDocument();
   });
 
   test('shows loading then renders player stats', async () => {

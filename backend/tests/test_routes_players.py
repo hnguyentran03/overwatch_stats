@@ -11,6 +11,25 @@ from urllib.parse import quote  # noqa: E402
 from models import OutcomeEnum  # noqa: E402
 
 
+class TestSamplePlayer:
+    def test_returns_null_when_no_players(self, client):
+        body = client.get("/api/players/sample").get_json()
+        assert body == {"battle_tag": None}
+
+    def test_returns_a_streamer_name(self, client, make_player):
+        make_player("Krusher99")
+        resp = client.get("/api/players/sample")
+        assert resp.status_code == 200
+        assert resp.get_json()["battle_tag"] == "Krusher99"
+
+    def test_excludes_real_battle_tags(self, client, make_player):
+        # A real logged player (not a baked-in streamer name) must never be
+        # surfaced as the example — even when it's the only player in the DB.
+        make_player("RealPerson#1234")
+        body = client.get("/api/players/sample").get_json()
+        assert body == {"battle_tag": None}
+
+
 class TestPlayerStats:
     def test_player_not_found(self, client):
         resp = client.get("/api/players/Nobody%231234/stats")
