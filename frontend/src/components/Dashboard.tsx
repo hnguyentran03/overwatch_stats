@@ -34,8 +34,8 @@ function FilterGroup<T extends string>({ className, ariaLabel, options, value, o
 }
 
 const Dashboard = () => {
-  const [inputValue, setInputValue] = useState<string>('PlayerOne#1234');
-  const [searchedTag, setSearchedTag] = useState<string>('PlayerOne#1234');
+  const [inputValue, setInputValue] = useState<string>('');
+  const [searchedTag, setSearchedTag] = useState<string>('');
   const [playerStats, setPlayerStats] = useState<PlayerStats | null>(null);
   const [loadedTag, setLoadedTag] = useState<string | null>(null);
   const [matchOutcomes, setMatchOutcomes] = useState<MatchOutcome[]>([]);
@@ -48,7 +48,13 @@ const Dashboard = () => {
   const [sizeFilter, setSizeFilter] = useState<SizeFilter>('all');
 
   useEffect(() => {
-    fetchPlayerData(searchedTag);
+    if (searchedTag) {
+      fetchPlayerData(searchedTag);
+    } else {
+      setPlayerStats(null);
+      setNotFound(false);
+      setLoading(false);
+    }
   }, [searchedTag, modeFilter, sizeFilter]);
 
   const fetchPlayerData = async (tag: string) => {
@@ -90,6 +96,14 @@ const Dashboard = () => {
     // it's stale (belongs to another player), so show the loader; on a same-tag
     // filter refetch we keep it visible and let it update in place (no flash).
     const hasCurrentPlayer = playerStats !== null && loadedTag === searchedTag;
+
+    if (!searchedTag) {
+      return (
+        <div className="player-prompt">
+          <p>Search for a battle tag to view player stats.</p>
+        </div>
+      );
+    }
 
     if (loading && !hasCurrentPlayer) {
       return <div className="loading">Loading player data...</div>;

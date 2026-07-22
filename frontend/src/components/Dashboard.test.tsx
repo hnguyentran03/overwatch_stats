@@ -47,9 +47,25 @@ beforeEach(() => {
   (getPlayerMatchOutcomes as jest.Mock).mockResolvedValue(outcomesFixture);
 });
 
+// Types a battle tag into the search box, submits it, and waits for the player
+// heading to appear. The dashboard loads no player until a tag is searched.
+const searchTag = async (tag = 'PlayerOne#1234') => {
+  fireEvent.change(screen.getByPlaceholderText('Name#1234'), { target: { value: tag } });
+  fireEvent.click(screen.getByText('Search'));
+  await waitFor(() => screen.getByRole('heading', { name: tag }));
+};
+
 describe('Dashboard', () => {
+  test('shows a search prompt before any tag is searched', () => {
+    render(<Dashboard />);
+    expect(screen.getByText(/Search for a battle tag/)).toBeInTheDocument();
+    expect(screen.queryByText('Loading player data...')).not.toBeInTheDocument();
+  });
+
   test('shows loading then renders player stats', async () => {
     render(<Dashboard />);
+    fireEvent.change(screen.getByPlaceholderText('Name#1234'), { target: { value: 'PlayerOne#1234' } });
+    fireEvent.click(screen.getByText('Search'));
     expect(screen.getByText('Loading player data...')).toBeInTheDocument();
 
     await waitFor(() =>
@@ -61,7 +77,7 @@ describe('Dashboard', () => {
 
   test('renders dash for a role with no games', async () => {
     render(<Dashboard />);
-    await waitFor(() => screen.getByRole('heading', { name: 'PlayerOne#1234' }));
+    await searchTag();
     // Tank win rate is null -> shows em dash and "No games".
     expect(screen.getByText('—')).toBeInTheDocument();
     expect(screen.getByText('No games')).toBeInTheDocument();
@@ -73,6 +89,8 @@ describe('Dashboard', () => {
     (getPlayerStats as jest.Mock).mockRejectedValue({ response: { status: 404 } });
     (getPlayerMatchOutcomes as jest.Mock).mockRejectedValue({ response: { status: 404 } });
     render(<Dashboard />);
+    fireEvent.change(screen.getByPlaceholderText('Name#1234'), { target: { value: 'PlayerOne#1234' } });
+    fireEvent.click(screen.getByText('Search'));
     await waitFor(() =>
       expect(screen.getByText(/No player found for/)).toBeInTheDocument()
     );
@@ -81,7 +99,7 @@ describe('Dashboard', () => {
 
   test('searching a new tag refetches data', async () => {
     render(<Dashboard />);
-    await waitFor(() => screen.getByRole('heading', { name: 'PlayerOne#1234' }));
+    await searchTag();
 
     const input = screen.getByPlaceholderText('Name#1234');
     fireEvent.change(input, { target: { value: 'NewPlayer#5678' } });
@@ -95,7 +113,7 @@ describe('Dashboard', () => {
 
   test('shows the loader instead of stale data while a newly searched tag loads', async () => {
     render(<Dashboard />);
-    await waitFor(() => screen.getByRole('heading', { name: 'PlayerOne#1234' }));
+    await searchTag();
 
     // Make the next stats fetch hang; outcomes resolve immediately (default mock),
     // so completion is gated solely on the hanging stats promise.
@@ -121,7 +139,7 @@ describe('Dashboard', () => {
 
   test('changing the mode filter refetches with that mode', async () => {
     render(<Dashboard />);
-    await waitFor(() => screen.getByRole('heading', { name: 'PlayerOne#1234' }));
+    await searchTag();
 
     fireEvent.click(screen.getByRole('button', { name: 'Ranked' }));
 
@@ -133,7 +151,7 @@ describe('Dashboard', () => {
 
   test('changing the size filter refetches with that size', async () => {
     render(<Dashboard />);
-    await waitFor(() => screen.getByRole('heading', { name: 'PlayerOne#1234' }));
+    await searchTag();
     fireEvent.click(screen.getByRole('button', { name: '6v6' }));
     await waitFor(() =>
       expect(getPlayerStats).toHaveBeenLastCalledWith('PlayerOne#1234', 'all', '6v6')
@@ -142,7 +160,7 @@ describe('Dashboard', () => {
 
   test('filter buttons expose aria-pressed for the active selection', async () => {
     render(<Dashboard />);
-    await waitFor(() => screen.getByRole('heading', { name: 'PlayerOne#1234' }));
+    await searchTag();
 
     const modeGroup = screen.getByRole('group', { name: 'Game mode filter' });
     // Defaults to 'All' pressed.
@@ -159,7 +177,7 @@ describe('Dashboard', () => {
 
   test('switching tabs renders the corresponding component', async () => {
     render(<Dashboard />);
-    await waitFor(() => screen.getByRole('heading', { name: 'PlayerOne#1234' }));
+    await searchTag();
 
     fireEvent.click(screen.getByRole('button', { name: 'Hero Stats' }));
     expect(screen.getByText('HeroStats Component')).toBeInTheDocument();
@@ -173,7 +191,7 @@ describe('Dashboard', () => {
 
   test('Log Match button shows the form and Back returns to dashboard', async () => {
     render(<Dashboard />);
-    await waitFor(() => screen.getByRole('heading', { name: 'PlayerOne#1234' }));
+    await searchTag();
 
     fireEvent.click(screen.getByText('+ Log Match'));
     expect(screen.getByText('LogMatch Form')).toBeInTheDocument();

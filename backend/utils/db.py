@@ -98,6 +98,7 @@ class Database:
                 ("Midtown", MapTypeEnum.hybrid),
                 ("Numbani", MapTypeEnum.hybrid),
                 ("Paraíso", MapTypeEnum.hybrid),
+                ("Neon Junction", MapTypeEnum.hybrid),
                 # Control
                 ("Busan", MapTypeEnum.control),
                 ("Ilios", MapTypeEnum.control),

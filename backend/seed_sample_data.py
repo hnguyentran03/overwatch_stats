@@ -10,6 +10,28 @@ from config import DevelopmentConfig
 
 FILLER_COUNT = 25
 
+# Overwatch's baked-in anonymous names — the ones the game randomly assigns when
+# "Hide My Name" / Streamer Mode is on. Used in place of generic PlayerNN tags.
+STREAMER_NAMES = [
+    '0nMyB1kE', 'C4LYPSO', 'IHOLDW', 'OmnicaBot', 'Synaesthesia', '1ntiW4rrior',
+    'Capt1v35un', 'JetpackC47', 'OVERCL0CKED', 'TalonIsTops', '1RONCL4D', 'CavalryHere',
+    'Junk3r', 'Paintb4ll3r', 'TheArchitech', '1SHOT1KILL', 'Ch00Ch00', 'Junkenst31n',
+    'PBLover', 'TorbinTime', '2Spicy4U', 'CHUN0', 'JusticeR41N5', 'PHR34KZ', 'TS1fan',
+    '4TH3N4', 'Cvpids4rrow', 'jvnkerqveen', 'PLAY2WIN', 'UselessPropaganda', '5him4d4',
+    'D1V1NExARCHITECH', 'K1NGH0WL', 'PLSNANOME', 'V4lkyr13', '12Hooks', 'D34DL0CK',
+    'K1tsune', 'PLSREZME', 'W1dowsK1ss', 'ACC3L3RANDO', 'DISCxRD', 'Krusher99', 'PushBot',
+    'W1nt0n', 'AlreadyTrac3r', 'ECH0xL0C8R', 'L1fePRTCTL1fe', 'R4V4G3R', 'Wayf1nder',
+    'An00bis', 'EfisBiggestFan', 'Literally1', 'RELEASEM3', 'WH4MBUL4NCE', 'ANDTHEYSAY',
+    'EggHaus', 'Luc10h0h', 'RipEm2Pcs', 'xRAPT0RA', 'AntlerAntler', 'EmreMain', 'M0nd4tt4',
+    'RIPGOATS', 'xXNerfThisXx', 'B0BD0SMTHN', 'EZTarget', 'M00nHamster', 'Sh00tingSt4r',
+    'XxP3RF3CTPRIS0NxX', 'B4NSH33', 'FACECLANK', 'M1Tz1', 'SHR1KE', 'xXSwordMadamXx',
+    'BASt3t', 'Ganymede54', 'M4D4xM4D4', 'SillyGoose', 'xY0K41x', 'BBBrig', 'GuardianAngel',
+    'M4rti4n', 'SimianScience', 'YouKnowYourself', 'BeansonsBeans', 'GUNNY', 'Mace2Face',
+    'SPIN2WIN', 'z0mn1c', 'BEEFToad', 'H0rus', 'MEKAMANGO', 'Str1keC0mmander', 'AudioM3dic',
+    'BioHazard', 'H3L1X', 'MightyMEKA', 'Svyat0g0r', 'ChaaChaa', 'Soldier24',
+    'VishkarCorpo0947', 'sl1pstr3am', '7ricky7racer', 'GarlicBread', 'DinoNuggets',
+]
+
 
 def make_score(outcome, map_type):
     if outcome == OutcomeEnum.draw:
@@ -205,17 +227,19 @@ def generate_sample_data():
     session = db.get_session()
 
     try:
+        # Tracked players get memorable anonymous names; fillers draw from the rest.
+        tracked_names = ['Krusher99', 'GuardianAngel', 'W1nt0n']
         tracked_players = [
-            Player(user_id='PlayerOne#1234', other_stats='Main player'),
-            Player(user_id='FlexSupport#5678', other_stats='Flex support player'),
-            Player(user_id='TankMain#9012', other_stats='Tank main'),
+            Player(user_id=tracked_names[0], other_stats='Main player'),
+            Player(user_id=tracked_names[1], other_stats='Flex support player'),
+            Player(user_id=tracked_names[2], other_stats='Tank main'),
         ]
         for p in tracked_players:
             session.add(p)
 
-        filler_players = [
-            Player(user_id=f'Player{i:02d}#{1000 + i}') for i in range(1, FILLER_COUNT + 1)
-        ]
+        filler_pool = [n for n in STREAMER_NAMES if n not in tracked_names]
+        filler_names = random.sample(filler_pool, FILLER_COUNT)
+        filler_players = [Player(user_id=n) for n in filler_names]
         for p in filler_players:
             session.add(p)
 
