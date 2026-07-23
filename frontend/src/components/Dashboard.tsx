@@ -129,6 +129,12 @@ const Dashboard = () => {
     if (e.key === 'Enter') handleSearch();
   };
 
+  const goHome = () => {
+    setInputValue('');
+    setSearchedTag('');
+    setShowLogMatch(false);
+  };
+
   const renderBody = () => {
     // Data on hand is only valid for the tag it was loaded for. On a tag change
     // it's stale (belongs to another player), so show the loader; on a same-tag
@@ -279,7 +285,7 @@ const Dashboard = () => {
     return (
       <div className="dashboard">
         <header className="dashboard-header">
-          <h1>Overwatch Statistics</h1>
+          <h1><button type="button" className="app-title" onClick={goHome}>Overwatch Statistics</button></h1>
         </header>
         <LogMatch
           onCancel={() => setShowLogMatch(false)}
@@ -302,7 +308,7 @@ const Dashboard = () => {
         />
       )}
       <header className="dashboard-header">
-        <h1>Overwatch Statistics</h1>
+        <h1><button type="button" className="app-title" onClick={goHome}>Overwatch Statistics</button></h1>
         <div className="player-selector">
           <label>Battle Tag: </label>
           <input

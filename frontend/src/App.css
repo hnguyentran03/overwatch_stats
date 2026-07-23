@@ -55,6 +55,20 @@ body {
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
+.app-title {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-shadow: inherit;
+  cursor: pointer;
+}
+
+.app-title:hover {
+  text-decoration: underline;
+}
+
 .player-heading {
   color: #ffffff;
   font-size: 2rem;
@@ -451,7 +465,6 @@ body {
   border-radius: 3px;
   font-size: 0.7rem;
   font-weight: bold;
-  margin-left: 5px;
 }
 
 .mode-badge.mode-ranked {
@@ -470,6 +483,9 @@ body {
   border-radius: 3px;
   font-size: 0.7rem;
   font-weight: bold;
+}
+
+.map-info .size-badge {
   margin-left: 5px;
 }
 
@@ -813,6 +829,11 @@ body {
   gap: 4px;
   color: var(--text-muted);
   font-size: 0.95rem;
+}
+
+.modal-meta-badges {
+  display: flex;
+  gap: 5px;
 }
 
 .modal-score {

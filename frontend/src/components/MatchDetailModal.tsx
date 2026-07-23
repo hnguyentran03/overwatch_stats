@@ -69,11 +69,13 @@ const MatchDetailModal = ({ matchId, battleTag, onClose }: { matchId: number; ba
               <div className="modal-meta">
                 <span>{new Date(details.date_time).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</span>
                 <span className="match-time-of-day">{new Date(details.date_time).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}</span>
-                <span>{formatTime(details.duration)} duration</span>
-                <span className={`mode-badge mode-${details.game_mode}`}>
-                  {details.game_mode === 'ranked' ? 'Ranked' : 'Unranked'}
+                <span>Duration: {formatTime(details.duration)}</span>
+                <span className="modal-meta-badges">
+                  <span className={`mode-badge mode-${details.game_mode}`}>
+                    {details.game_mode === 'ranked' ? 'Ranked' : 'Unranked'}
+                  </span>
+                  <span className={`size-badge size-${details.team_size}`}>{details.team_size}</span>
                 </span>
-                <span className={`size-badge size-${details.team_size}`}>{details.team_size}</span>
               </div>
             </div>
 
